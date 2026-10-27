@@ -2,7 +2,7 @@
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { Tabs } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import DrawerMenu from "../../components/DrawerMenu";
+import DrawerMenu from "../../components/global/DrawerMenu";
 import { useUserRole } from "../_layout";
 
 export default function TabsLayout() {

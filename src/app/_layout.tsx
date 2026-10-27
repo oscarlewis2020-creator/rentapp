@@ -1,13 +1,10 @@
 // app/_layout.tsx
-import { PowerSyncContextProvider } from "@powersync/react";
+
 import { Stack, useRouter, useSegments } from "expo-router";
-import { createContext, useContext, useEffect, useState } from "react";
-import { Provider } from "react-redux";
-import { db } from "../db/client";
-import { setRole, store } from "../store";
-import { bootstrapAuthSession } from "../store/authSlice"; // Corrected thunk name match
+import { createContext, useContext, useEffect } from "react";
+import { bootstrapAuthSession } from "../store/authSlice";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { RoleContextType, UserRole } from "../types/navigation";
+import { RoleContextType } from "../types/navigation";
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
@@ -18,80 +15,82 @@ export const useUserRole = () => {
   return context;
 };
 
+const PUBLIC_WHITELIST = ["welcome", "search-property", "debug-screen"];
+
 function RootLayoutContent() {
-  // 💡 Destructure matches 'isInitializing' from the Redux state exactly
-  const { isAuthenticated, hasOnboarded, isInitializing } = useAppSelector(
-    (state) => state.auth,
-  );
+  const {
+    isAuthenticated,
+    hasOnboarded,
+    isInitializing,
+    isInitWorkflowComplete,
+  } = useAppSelector((state) => state.auth);
 
-  // Destructure currentRole from your role slice
   const { currentRole } = useAppSelector((state) => state.role);
-
-  // Keep UI-only layout state local
-  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-
   const dispatch = useAppDispatch();
-  const segments = useSegments();
+  const segments = useSegments() as string[];
   const router = useRouter();
 
-  // 1. Trigger storage validation session on app launch
   useEffect(() => {
     dispatch(bootstrapAuthSession());
   }, [dispatch]);
 
-  // 2. Continuous Route Protection Engine
   useEffect(() => {
-    // Prevent any redirection evaluations during data loading
     if (isInitializing) return;
 
     const inAuthGroup = segments[0] === "(auth)";
-    const inOnboardingGroup = segments[0] === "(public)";
+    const inPublicGroup = segments[0] === "(public)";
+    const currentSubRoute = segments[1] || "";
 
+    // Case A: Onboarding Carousel enforcement
     if (!hasOnboarded) {
-      if (!inOnboardingGroup) {
-        router.replace("/(public)");
+      if (!inPublicGroup || currentSubRoute !== "") {
+        router.replace("/");
       }
-    } else if (!isAuthenticated) {
+      return;
+    }
+
+    // Case B: Guest / Unauthenticated users
+    if (!isAuthenticated) {
+      if (inPublicGroup && PUBLIC_WHITELIST.includes(currentSubRoute)) {
+        return;
+      }
       if (!inAuthGroup) {
-        router.replace("/(auth)/sign-in");
+        router.replace("/(auth)/signin");
       }
-    } else if (inAuthGroup || inOnboardingGroup) {
+      return;
+    }
+
+    // 🔥 Case C: Authenticated but Post-Auth Setup workflow is incomplete
+    if (!isInitWorkflowComplete) {
+      if (currentSubRoute !== "init-screen") {
+        router.replace("/init-screen");
+      }
+      return;
+    }
+
+    // Case D: Fully authenticated, ready to use core dashboard tabs
+    if (
+      (inAuthGroup || inPublicGroup) &&
+      currentSubRoute !== "search-property"
+    ) {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, hasOnboarded, isInitializing, segments, router]);
+  }, [
+    isAuthenticated,
+    hasOnboarded,
+    isInitializing,
+    isInitWorkflowComplete,
+    segments,
+    router,
+  ]);
 
-  // 3. Prevent rendering anything until initialization states resolve
-  if (isInitializing) {
-    return null;
-  }
-
-  // Context mapping placeholder to update Redux role state
-  const roleContextValue: RoleContextType = {
-    currentRole,
-    setCurrentRole: (role: UserRole) => dispatch(setRole(role)), // Clean and type-safe!
-    isDrawerOpen,
-    setIsDrawerOpen,
-  };
+  if (isInitializing) return null;
 
   return (
-    <RoleContext.Provider value={roleContextValue}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(public)" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-    </RoleContext.Provider>
-  );
-}
-
-// Absolute App Entry Point
-export default function RootLayout() {
-  return (
-    <Provider store={store}>
-      {/* 📦 Connects the PowerSync context globally alongside Redux */}
-      <PowerSyncContextProvider db={db}>
-        <RootLayoutContent />
-      </PowerSyncContextProvider>
-    </Provider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(public)" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(tabs)" />
+    </Stack>
   );
 }
