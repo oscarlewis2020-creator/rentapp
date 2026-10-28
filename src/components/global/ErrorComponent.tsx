@@ -29,7 +29,7 @@ export function ErrorComponent({ message }: ErrorComponentProps) {
       <View style={styles.imageContainer}>
         <Image
           resizeMode="contain"
-          source={require("../../assets/error.png")}
+          source={require("../../../assets/error.png")}
           style={styles.image}
         />
       </View>

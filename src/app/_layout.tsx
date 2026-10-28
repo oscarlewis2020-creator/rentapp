@@ -1,10 +1,11 @@
 // app/_layout.tsx
-
 import { Stack, useRouter, useSegments } from "expo-router";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { Provider } from "react-redux";
+import { setRole, store } from "../store"; // 💡 Import your Redux role setter action
 import { bootstrapAuthSession } from "../store/authSlice";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { RoleContextType } from "../types/navigation";
+import { RoleContextType, UserRole } from "../types/navigation";
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
@@ -29,6 +30,9 @@ function RootLayoutContent() {
   const dispatch = useAppDispatch();
   const segments = useSegments() as string[];
   const router = useRouter();
+
+  // 💡 Initialize the local drawer state required by your types contract
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
   useEffect(() => {
     dispatch(bootstrapAuthSession());
@@ -60,7 +64,7 @@ function RootLayoutContent() {
       return;
     }
 
-    // 🔥 Case C: Authenticated but Post-Auth Setup workflow is incomplete
+    // Case C: Authenticated but Post-Auth Setup workflow is incomplete
     if (!isInitWorkflowComplete) {
       if (currentSubRoute !== "init-screen") {
         router.replace("/init-screen");
@@ -86,11 +90,32 @@ function RootLayoutContent() {
 
   if (isInitializing) return null;
 
+  // 💡 Map out the value object ensuring it adheres perfectly to your navigation types contract
+  const roleContextValue: RoleContextType = {
+    currentRole,
+    setCurrentRole: (role: UserRole | "guest") => dispatch(setRole(role)), // Bridges context changes straight to Redux
+    isDrawerOpen,
+    setIsDrawerOpen,
+  };
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(public)" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    // 💡 wrap the navigation system tree inside the active Provider context
+    <RoleContext.Provider value={roleContextValue}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(public)" />
+        <Stack.Screen name="(auth)/signin" />
+        <Stack.Screen name="(auth)/init-screen" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </RoleContext.Provider>
+  );
+}
+
+// Global Main Container Entry Point
+export default function RootLayout() {
+  return (
+    <Provider store={store}>
+      <RootLayoutContent />
+    </Provider>
   );
 }

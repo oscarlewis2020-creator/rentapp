@@ -1,37 +1,61 @@
 // app/(tabs)/chat.tsx
+import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { useAppSelector } from "../../store/hooks";
-import { RoleScreenRegistry } from "../../types/navigation";
+import { UserRole } from "../../types/navigation";
 
-import { LandlordChat } from "../screens/landlord/chat";
-import { TenantChat } from "../screens/tenant/chat";
+// Component Imports
+import { LandlordChat } from "../../components/roles/landlord/chat";
+import { LandlordNewChatContacts } from "../../components/ui/landlord/chat/LandlordNewChatContacts";
 
-// 💡 A clean placeholder view to show the sales team until the feature is built
+// 💡 1. The local integrated helper handles the screen switching via internal hooks
+function LandlordChatWorkspace() {
+  const [currentView, setCurrentView] = useState<"inbox" | "new-chat">("inbox");
+
+  if (currentView === "new-chat") {
+    return (
+      <LandlordNewChatContacts
+        onBackPress={() => setCurrentView("inbox")}
+        onInitiateChat={(building, unit) => {
+          console.log(
+            `Launch communication thread sequence: ${building} - ${unit}`,
+          );
+        }}
+      />
+    );
+  }
+
+  return <LandlordChat onNewChatPress={() => setCurrentView("new-chat")} />;
+}
+
+// 💡 2. The temporary placeholder component for the sales team
 function SalesChatPlaceholder() {
   return (
     <View style={styles.center}>
       <Text variant="titleMedium" style={styles.text}>
         Sales CRM Chat Coming Soon
       </Text>
-      <Text variant="bodyMedium" style={styles.subtext}>
-        The instant messaging center is currently optimized for Landlord and
-        Tenant operations.
-      </Text>
     </View>
   );
 }
 
+// 💡 3. The absolute main Tab screen export required by Expo Router
 export default function GenericChatScreen() {
   const { currentRole } = useAppSelector((state) => state.role);
 
-  // 💡 TypeScript is happy now because every key in UserRole ("tenant" | "landlord" | "sales") is fully handled!
-  const chatRegistry: RoleScreenRegistry = {
-    tenant: <TenantChat />,
-    landlord: <LandlordChat />,
+  // Strictly maps your types/navigation.ts registry contract requirements
+  const chatRegistry: Record<UserRole, React.ReactElement> = {
+    tenant: (
+      <View style={styles.center}>
+        <Text>Tenant Chat Coming Soon</Text>
+      </View>
+    ), // Placeholder
+    landlord: <LandlordChatWorkspace />, // Connected workspace layout engine!
     sales: <SalesChatPlaceholder />,
   };
 
+  // Firewall bypass rule protecting tabs from guest intrusions
   if (currentRole === "guest") return null;
 
   return chatRegistry[currentRole];
@@ -42,19 +66,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
-    backgroundColor: "#FFF",
+    backgroundColor: "#1C2026",
   },
   text: {
+    color: "#E5E9F0",
     fontWeight: "600",
-    color: "#1C1C1E",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  subtext: {
-    color: "#8E8E93",
-    textAlign: "center",
-    maxWidth: 280,
-    lineHeight: 20,
   },
 });

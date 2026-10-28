@@ -50,3 +50,24 @@
 //         ├── TenantHome.tsx
 //         ├── TenantChat.tsx
 //         └── TenantSettings.tsx
+
+// LANDLORD CHATSCREEN
+
+// [ LandlordChat ]
+//       │
+//       └──► Click "New Chat" Pill Button
+//                  │
+//                  ├──► Triggers custom onNewChatPress() callback
+//                  │
+//                  └──► Updates local workflowStep hook state to "contacts_picker"
+//                              │
+//                              ▼
+//               [ LandlordNewChatContacts ]
+//                              │
+//             ┌────────────────┴────────────────┐
+//             ▼                                 ▼
+//    Click Back Arrow Icon            Click "All Tenants" / "Chat Tenant"
+//             │                                 │
+//    Triggers onBackPress()            Triggers onInitiateChat(building, unit)
+//             │                                 │
+//    Resets step to "inbox_placeholder"   Handles the creation/opening of a channel

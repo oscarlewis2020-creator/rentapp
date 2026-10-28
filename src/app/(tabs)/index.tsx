@@ -4,9 +4,9 @@ import { RoleScreenRegistry } from "../../types/navigation";
 
 // Import your custom role-specific content layouts
 import { ErrorComponent } from "../../components/global/ErrorComponent";
-import { LandlordHome } from "../screens/landlord/home";
-import { SalesHome } from "../screens/sales/home";
-import { TenantHome } from "../screens/tenant/home";
+import { LandlordHome } from "../../components/roles/landlord/home";
+import { SalesHome } from "../../components/roles/sales/home";
+import { TenantHome } from "../../components/roles/tenant/home";
 
 export default function GenericHomeScreen() {
   const { currentRole } = useAppSelector((state) => state.role);

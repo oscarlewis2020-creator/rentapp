@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import {
   FlatList,
   Image,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -43,11 +45,14 @@ const pageConfig = [
 ];
 
 export default function OnboardingScreen() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const dispatch = useAppDispatch();
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  // 💡 Desktop responsive viewport capping constraint calculation
+  const slideWidth = Platform.OS === "web" ? Math.min(width, 600) : width;
 
   // Track the current visible slide page item
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -85,78 +90,88 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 1. The Carousel Slider */}
-      <FlatList
-        data={pageConfig}
-        ref={flatListRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        pagingEnabled
-        bounces={false}
-        keyExtractor={(item) => item.ttl}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewConfigRef}
-        renderItem={({ item }) => (
-          <View style={[styles.slide, { width }]}>
-            <Image
-              source={item.img}
-              style={styles.image}
-              resizeMode="contain"
-            />
-            <Text style={styles.title}>{item.ttl}</Text>
-            <Text style={styles.description}>{item.txt}</Text>
-          </View>
-        )}
-      />
-
-      {/* 2. Visual Dot Indicators */}
-      <View style={styles.indicatorContainer}>
-        {pageConfig.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.dot,
-              currentIndex === index ? styles.activeDot : styles.inactiveDot,
-            ]}
+      <View style={styles.centerCardEnvelope}>
+        {/* 1. The Carousel Slider */}
+        <View style={styles.listContainer}>
+          <FlatList
+            data={pageConfig}
+            ref={flatListRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+            bounces={false}
+            keyExtractor={(item) => item.ttl}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewConfigRef}
+            renderItem={({ item }) => (
+              <View style={[styles.slide, { width: slideWidth }]}>
+                {/* 💡 Use ScrollView internal padding context to safeguard readable textual areas */}
+                <ScrollView
+                  contentContainerStyle={styles.slideScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <Image
+                    source={item.img}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.title}>{item.ttl}</Text>
+                  <Text style={styles.description}>{item.txt}</Text>
+                </ScrollView>
+              </View>
+            )}
           />
-        ))}
-      </View>
-
-      {/* 3. Lower Control Action Bar */}
-      <View style={styles.footer}>
-        {/* Left Action: Prev Button */}
-        <View style={styles.buttonWrapper}>
-          {currentIndex > 0 && (
-            <TouchableOpacity style={styles.navButton} onPress={handlePrev}>
-              <Ionicons name="arrow-back" size={24} color="#007AFF" />
-              <Text style={styles.buttonText}>Back</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
-        {/* Right Action: Next Button / Checkmark Sign-in routing */}
-        <View style={styles.buttonWrapper}>
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              currentIndex === pageConfig.length - 1 && styles.finishButton,
-            ]}
-            onPress={handleNext}
-          >
-            {currentIndex === pageConfig.length - 1 ? (
-              <>
-                <Text style={[styles.buttonText, styles.finishButtonText]}>
-                  Get Started
-                </Text>
-                <Ionicons name="checkmark-circle" size={24} color="#FFF" />
-              </>
-            ) : (
-              <>
-                <Text style={styles.buttonText}>Next</Text>
-                <Ionicons name="arrow-forward" size={24} color="#007AFF" />
-              </>
+        {/* 2. Visual Dot Indicators */}
+        <View style={styles.indicatorContainer}>
+          {pageConfig.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                currentIndex === index ? styles.activeDot : styles.inactiveDot,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* 3. Lower Control Action Bar */}
+        <View style={styles.footer}>
+          {/* Left Action: Prev Button */}
+          <View style={styles.buttonWrapper}>
+            {currentIndex > 0 && (
+              <TouchableOpacity style={styles.navButton} onPress={handlePrev}>
+                <Ionicons name="arrow-back" size={24} color="#007AFF" />
+                <Text style={styles.buttonText}>Back</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
+
+          {/* Right Action: Next Button / Checkmark Sign-in routing */}
+          <View style={styles.buttonWrapper}>
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                currentIndex === pageConfig.length - 1 && styles.finishButton,
+              ]}
+              onPress={handleNext}
+            >
+              {currentIndex === pageConfig.length - 1 ? (
+                <>
+                  <Text style={[styles.buttonText, styles.finishButtonText]}>
+                    Get Started
+                  </Text>
+                  <Ionicons name="checkmark-circle" size={24} color="#FFF" />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.buttonText}>Next</Text>
+                  <Ionicons name="arrow-forward" size={24} color="#007AFF" />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -167,21 +182,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // 💡 Centers and restricts everything on wide desktop browser windows
+  centerCardEnvelope: {
+    flex: 1,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 600 : "100%",
+    backgroundColor: "#FFF",
+  },
+  listContainer: {
+    flex: 1, // Dynamically occupies remaining space above indicators/footer rows
   },
   // Inside styles definition:
   slide: {
     flex: 1,
+    height: "100%",
+  },
+  slideScrollContent: {
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    // 💡 Center the card content beautifully on desktop web layout viewports
-    maxWidth: 600,
-    alignSelf: "center",
+    paddingBottom: 40,
   },
   image: {
     width: "100%",
-    maxHeight: 300, // Caps size on desktop browsers
-    marginBottom: 40,
+    height: undefined,
+    aspectRatio: 1.33, // Locks dimensions to standard 4:3 safely
+    maxHeight: 220, // 💡 Hard ceiling limits prevent vertical displacement clipping
+    marginBottom: 24,
   },
 
   title: {
@@ -237,6 +267,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     gap: 6,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
   },
   finishButton: {
     backgroundColor: "#007AFF",

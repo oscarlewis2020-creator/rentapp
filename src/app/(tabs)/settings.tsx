@@ -2,9 +2,9 @@
 import { useAppSelector } from "../../store/hooks";
 import { RoleScreenRegistry } from "../../types/navigation";
 
-import { LandlordSettings } from "../screens/landlord/settings";
-import { SalesSettings } from "../screens/sales/settings";
-import { TenantSettings } from "../screens/tenant/settings";
+import { LandlordSettings } from "../../components/roles/landlord/settings";
+import { SalesSettings } from "../../components/roles/sales/settings";
+import { TenantSettings } from "../../components/roles/tenant/settings";
 
 export default function GenericSettingsScreen() {
   const { currentRole } = useAppSelector((state) => state.role);

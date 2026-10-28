@@ -8,21 +8,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   BuildingItem,
   BuildingPickerModal,
-} from "../../../components/ui/landlord/units/BuildingPickerModal";
-import { BuildingSelector } from "../../../components/ui/landlord/units/BuildingSelector";
-import { ControlActionBar } from "../../../components/ui/landlord/units/ControlActionBar";
-import {
-  SegmentTabs,
-  TabOption,
-} from "../../../components/ui/landlord/units/SegmentTabs";
-import {
-  UnitCard,
-  UnitItem,
-} from "../../../components/ui/landlord/units/UnitCard";
+} from "../../ui/landlord/units/BuildingPickerModal";
+import { BuildingSelector } from "../../ui/landlord/units/BuildingSelector";
+import { ControlActionBar } from "../../ui/landlord/units/ControlActionBar";
+import { SegmentTabs, TabOption } from "../../ui/landlord/units/SegmentTabs";
+import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 
 // 💡 Sub-view Screen Imports
-import { LandlordActionView } from "../../../components/ui/landlord/action/ActionView";
-import { LandlordExtraView } from "../../../components/ui/landlord/extra/ExtraView";
+import { LandlordActionView } from "../../ui/landlord/action/ActionView";
+import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
 
 const MOCK_BUILDINGS: BuildingItem[] = [
   { id: "b1", name: "Test 1" },
