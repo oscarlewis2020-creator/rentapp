@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import {
   FlatList,
   Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,8 +15,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { useAppDispatch } from "../../store/hooks";
+import { useAppDispatch } from "../../hooks/hooks";
+import { completeOnboarding } from "../../store/authSlice";
 
 const pageConfig = [
   {
@@ -54,25 +56,32 @@ export default function OnboardingScreen() {
   // 💡 Desktop responsive viewport capping constraint calculation
   const slideWidth = Platform.OS === "web" ? Math.min(width, 600) : width;
 
-  // Track the current visible slide page item
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems && viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index || 0);
-    }
-  }).current;
+  // 💡 Robust cross-platform index calculation based on actual scroll offset distance
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollOffset = event.nativeEvent.contentOffset.x;
+    // Rounding accounts for decimal width discrepancies on desktop browser viewports
+    const calculatedIndex = Math.round(scrollOffset / slideWidth);
 
-  const viewConfigRef = useRef({
-    viewAreaCoveragePercentThreshold: 50,
-  }).current;
+    // Boundary safety verification check guards
+    if (calculatedIndex >= 0 && calculatedIndex < pageConfig.length) {
+      if (calculatedIndex !== currentIndex) {
+        setCurrentIndex(calculatedIndex);
+      }
+    }
+  };
 
   // Next / Finish action handler
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < pageConfig.length - 1) {
-      flatListRef.current?.scrollToIndex({
-        index: currentIndex + 1,
-        animated: true,
-      });
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({
+          index: currentIndex + 1,
+          animated: true,
+        });
+      }, 10);
     } else {
+      // 🔥 FIX: Dispatch completion to persistent storage & Redux BEFORE updating the layout route
+      await dispatch(completeOnboarding());
       // Navigate to the welcome screen instead of completing the state here
       router.push("/welcome-screen");
     }
@@ -101,8 +110,17 @@ export default function OnboardingScreen() {
             pagingEnabled
             bounces={false}
             keyExtractor={(item) => item.ttl}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={viewConfigRef}
+            // onViewableItemsChanged={onViewableItemsChanged}
+            // viewabilityConfig={viewConfigRef}
+            // 💡 Swapped out onViewableItemsChanged hook for structural math event handler calculations
+            onScroll={handleScroll}
+            scrollEventThrottle={16} // Fires smoothly at 60fps frame rate markers
+            // 🔥 CRITICAL WEB FIX: Forces explicit layout calculations per slide item
+            getItemLayout={(_, index) => ({
+              length: slideWidth,
+              offset: slideWidth * index,
+              index,
+            })}
             renderItem={({ item }) => (
               <View style={[styles.slide, { width: slideWidth }]}>
                 {/* 💡 Use ScrollView internal padding context to safeguard readable textual areas */}

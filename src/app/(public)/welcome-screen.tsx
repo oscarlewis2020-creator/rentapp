@@ -3,9 +3,9 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Image, Platform, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper"; // Assuming React Native Paper based on variants
+import { useAppDispatch } from "../../hooks/hooks";
 import { setRole } from "../../store";
 import { completeOnboarding } from "../../store/authSlice";
-import { useAppDispatch } from "../../store/hooks";
 // Placeholder component imports - swap with your actual file paths
 import { BreathingButton } from "../../components/global/BreathingButton";
 import { LoadingOverlay } from "../../components/global/LoadingOverlay";

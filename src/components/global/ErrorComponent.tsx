@@ -2,8 +2,8 @@
 import { useRouter } from "expo-router";
 import { Image, Platform, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
+import { useAppDispatch, useAppSelector } from "../../hooks/hooks";
 import { logOutUser } from "../../store/authSlice";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
 
 interface ErrorComponentProps {
   message?: string;

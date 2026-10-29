@@ -1,5 +1,5 @@
 // app/(tabs)/settings.tsx
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector } from "../../hooks/hooks";
 import { RoleScreenRegistry } from "../../types/navigation";
 
 import { LandlordSettings } from "../../components/roles/landlord/settings";

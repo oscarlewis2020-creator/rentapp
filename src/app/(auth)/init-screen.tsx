@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { LoadingOverlay } from "../../components/global/LoadingOverlay";
+import { useAppDispatch, useAppSelector } from "../../hooks/hooks";
 import { completeInitWorkflow } from "../../store/authSlice";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
 
 // Replace mock components with your cross-platform components
 import { ErrorComponent } from "../../components/global/ErrorComponent";

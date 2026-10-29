@@ -1,10 +1,11 @@
 // app/_layout.tsx
 import { Stack, useRouter, useSegments } from "expo-router";
 import { createContext, useContext, useEffect, useState } from "react";
+import { PaperProvider } from "react-native-paper";
 import { Provider } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../hooks/hooks";
 import { setRole, store } from "../store"; // 💡 Import your Redux role setter action
 import { bootstrapAuthSession } from "../store/authSlice";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { RoleContextType, UserRole } from "../types/navigation";
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -115,7 +116,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <RootLayoutContent />
+      <PaperProvider>
+        <RootLayoutContent />
+      </PaperProvider>
     </Provider>
   );
 }

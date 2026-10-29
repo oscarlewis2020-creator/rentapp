@@ -1,5 +1,5 @@
 // app/(tabs)/index.tsx
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector } from "../../hooks/hooks";
 import { RoleScreenRegistry } from "../../types/navigation";
 
 // Import your custom role-specific content layouts

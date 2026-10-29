@@ -10,9 +10,9 @@ import {
 } from "react-native";
 import { Button, Card, Text, TextInput } from "react-native-paper";
 import { LoadingOverlay } from "../../components/global/LoadingOverlay";
+import { useAppDispatch } from "../../hooks/hooks";
 import { setRole } from "../../store";
 import { logInUser } from "../../store/authSlice";
-import { useAppDispatch } from "../../store/hooks";
 import { UserRole } from "../../types/navigation";
 
 export default function SignInScreen() {

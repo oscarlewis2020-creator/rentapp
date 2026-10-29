@@ -8,7 +8,7 @@ interface RoleState {
 }
 
 const initialRoleState: RoleState = {
-  currentRole: "guest",
+  currentRole: "landlord",
 };
 
 // Replace your mock reducer with a clean Redux Toolkit slice
