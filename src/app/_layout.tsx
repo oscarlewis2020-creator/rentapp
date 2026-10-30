@@ -1,10 +1,10 @@
 // app/_layout.tsx
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router"; // 💡 Add usePathname to prevent layout loops
 import { createContext, useContext, useEffect, useState } from "react";
 import { PaperProvider } from "react-native-paper";
 import { Provider } from "react-redux";
-import { useAppDispatch, useAppSelector } from "../hooks/hooks";
-import { setRole, store } from "../store"; // 💡 Import your Redux role setter action
+import { useAppDispatch, useAppSelector } from "../hooks";
+import { setRole, store } from "../store";
 import { bootstrapAuthSession } from "../store/authSlice";
 import { RoleContextType, UserRole } from "../types/navigation";
 
@@ -17,8 +17,6 @@ export const useUserRole = () => {
   return context;
 };
 
-const PUBLIC_WHITELIST = ["welcome", "search-property", "debug-screen"];
-
 function RootLayoutContent() {
   const {
     isAuthenticated,
@@ -26,57 +24,63 @@ function RootLayoutContent() {
     isInitializing,
     isInitWorkflowComplete,
   } = useAppSelector((state) => state.auth);
-
   const { currentRole } = useAppSelector((state) => state.role);
   const dispatch = useAppDispatch();
-  const segments = useSegments() as string[];
   const router = useRouter();
-
-  // 💡 Initialize the local drawer state required by your types contract
+  const pathname = usePathname(); // 💡 Track current position safely
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
   useEffect(() => {
     dispatch(bootstrapAuthSession());
   }, [dispatch]);
 
+  // 💡 Root Firewall: Handles high-level redirection boundaries safely
   useEffect(() => {
     if (isInitializing) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
-    const inPublicGroup = segments[0] === "(public)";
-    const currentSubRoute = segments[1] || "";
-
-    // Case A: Onboarding Carousel enforcement
+    // --- CASE A: ONBOARDING CAROUSEL ENFORCEMENT ---
     if (!hasOnboarded) {
-      if (!inPublicGroup || currentSubRoute !== "") {
+      if (pathname !== "/") {
         router.replace("/");
       }
       return;
     }
 
-    // Case B: Guest / Unauthenticated users
+    // --- CASE B: 🔥 CORRECTED SECURITY FIREWALL FOR UN-AUTHENTICATED STRREAMS ---
     if (!isAuthenticated) {
-      if (inPublicGroup && PUBLIC_WHITELIST.includes(currentSubRoute)) {
+      // Rule 1: If they explicitly chose Guest Mode, let them browse the public search catalog
+      if (currentRole === "guest") {
+        if (pathname !== "/search-property") {
+          router.replace("/search-property" as any);
+        }
         return;
       }
-      if (!inAuthGroup) {
-        router.replace("/(auth)/signin");
+
+      // Rule 2: Standard unauthenticated returning users are locked to Welcome or Signin paths
+      const isPublicAuthArea =
+        pathname === "/welcome-screen" ||
+        pathname.startsWith("/signin") ||
+        pathname === "/debug-screen";
+      if (!isPublicAuthArea) {
+        router.replace("/welcome-screen" as any); // 🛡️ Securely anchors them to the front door
       }
       return;
     }
 
-    // Case C: Authenticated but Post-Auth Setup workflow is incomplete
+    // --- CASE C: AUTHENTICATED BUT POST-AUTH SETUP INCOMPLETE ---
     if (!isInitWorkflowComplete) {
-      if (currentSubRoute !== "init-screen") {
-        router.replace("/init-screen");
+      if (pathname !== "/init-screen") {
+        router.replace("/(auth)/init-screen" as any);
       }
       return;
     }
 
-    // Case D: Fully authenticated, ready to use core dashboard tabs
+    // --- CASE D: FULLY AUTHENTICATED CORE EXPERIENCE GATEWAY ---
+    // If they are hanging around on the landing screens, push them straight into dashboard tabs
     if (
-      (inAuthGroup || inPublicGroup) &&
-      currentSubRoute !== "search-property"
+      pathname === "/welcome-screen" ||
+      pathname.startsWith("/signin") ||
+      pathname === "/init-screen"
     ) {
       router.replace("/(tabs)");
     }
@@ -85,22 +89,21 @@ function RootLayoutContent() {
     hasOnboarded,
     isInitializing,
     isInitWorkflowComplete,
-    segments,
+    currentRole,
+    pathname,
     router,
   ]);
 
   if (isInitializing) return null;
 
-  // 💡 Map out the value object ensuring it adheres perfectly to your navigation types contract
   const roleContextValue: RoleContextType = {
     currentRole,
-    setCurrentRole: (role: UserRole | "guest") => dispatch(setRole(role)), // Bridges context changes straight to Redux
+    setCurrentRole: (role: UserRole | "guest") => dispatch(setRole(role)),
     isDrawerOpen,
     setIsDrawerOpen,
   };
 
   return (
-    // 💡 wrap the navigation system tree inside the active Provider context
     <RoleContext.Provider value={roleContextValue}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(public)" />
@@ -112,7 +115,6 @@ function RootLayoutContent() {
   );
 }
 
-// Global Main Container Entry Point
 export default function RootLayout() {
   return (
     <Provider store={store}>

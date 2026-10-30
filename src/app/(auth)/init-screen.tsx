@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { LoadingOverlay } from "../../components/global/LoadingOverlay";
-import { useAppDispatch, useAppSelector } from "../../hooks/hooks";
+import { useAppDispatch, useAppSelector } from "../../hooks";
+import { setRole } from "../../store";
 import { completeInitWorkflow } from "../../store/authSlice";
 
 // Replace mock components with your cross-platform components
@@ -86,13 +87,19 @@ export default function AppInitScreen() {
     }
   };
 
-  const onProceedHandler = async (type: PromptType) => {
+  const onProceedHandler = async (
+    type: PromptType,
+    selectedRole?: "tenant" | "landlord",
+  ) => {
     try {
       if (type === "notification" && Platform.OS !== "web") {
         // Run mobile native Push Token registration rules
       } else if (type === "restore-chat") {
         setIsPullingChatBackup(true);
         // Execute PowerSync / Google Drive restore thunks
+      } else if (type === "continue-as" && selectedRole) {
+        // 🔥 CRITICAL FIX: Explicitly commit the user's role choice to Redux before completing setup
+        dispatch(setRole(selectedRole));
       }
       handleNextStep();
     } catch (error) {
@@ -122,7 +129,9 @@ export default function AppInitScreen() {
       {showUserPrompt && activePrompt && (
         <InitDialogue
           isLoading={isPullingChatBackup}
-          okHandler={() => onProceedHandler(activePrompt.type)}
+          okHandler={(type, hasNext, selectedRole) =>
+            onProceedHandler(activePrompt.type, selectedRole)
+          }
           onDismiss={onCancelHandler}
           visible={showUserPrompt}
           options={[activePrompt]}

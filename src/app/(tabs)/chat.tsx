@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
-import { useAppSelector } from "../../hooks/hooks";
+import { useAppSelector } from "../../hooks";
 import { UserRole } from "../../types/navigation";
 
 // Component Imports

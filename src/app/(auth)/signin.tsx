@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Button, Card, Text, TextInput } from "react-native-paper";
 import { LoadingOverlay } from "../../components/global/LoadingOverlay";
-import { useAppDispatch } from "../../hooks/hooks";
+import { useAppDispatch } from "../../hooks";
 import { setRole } from "../../store";
 import { logInUser } from "../../store/authSlice";
 import { UserRole } from "../../types/navigation";

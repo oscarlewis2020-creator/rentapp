@@ -15,8 +15,8 @@ export function BreathingButton({
     const breatheAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.05, // 💡 Reduced from 1.1 to prevent layout clipping/overlap
-          duration: 1200, // Slightly slower breathing rate looks more premium
+          toValue: 1.03,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
@@ -33,43 +33,50 @@ export function BreathingButton({
   }, [scaleAnim]);
 
   return (
-    <Animated.View
-      style={[styles.container, { transform: [{ scale: scaleAnim }] }]}
+    // 💡 FIX: Pressable is now the absolute outer wrapper.
+    // This locks the touch hitbox securely at 100% width and 52px height on mobile.
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.wrapper, pressed && styles.pressed]}
+      accessibilityRole="button"
     >
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-        // 💡 Fixes web cursor appearance
-        accessibilityRole="button"
+      {/* 💡 The animation scale is applied internally so it only alters the visual layers */}
+      <Animated.View
+        style={[
+          styles.animatedContainer,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
       >
         <Text variant="labelLarge" style={styles.text}>
           {label.toUpperCase()}
         </Text>
-      </Pressable>
-    </Animated.View>
+      </Animated.View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     width: "100%",
-    // 💡 Margin accounts for the scale animation breathing room
-    marginVertical: 4,
-    alignItems: "center",
-  },
-  button: {
-    backgroundColor: "#007AFF", // Adjust to match your theme primary color
-    width: "100%",
-    paddingVertical: 12,
+    height: 52, // Explicit uniform height matching your other welcome buttons
+    backgroundColor: "#007AFF",
     borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden", // Keeps scaled internal layers from spilling out of borders
     ...Platform.select({
       web: {
         cursor: "pointer",
         userSelect: "none",
       },
     }),
+    alignSelf: "stretch",
+  },
+  animatedContainer: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "stretch",
+    backgroundColor: "#007AFF", // Reinforce color fill on the animated layout matrix
   },
   pressed: {
     opacity: 0.8,

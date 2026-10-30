@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
+import { useAppDispatch, useAppSelector } from "."; // Adjust path to store typed hooks
 import { setRole } from "../store";
 import { logOutUser } from "../store/authSlice";
-import { useAppDispatch, useAppSelector } from "./hooks"; // Adjust path to store typed hooks
 
 export function useAuthGuard() {
   const router = useRouter();

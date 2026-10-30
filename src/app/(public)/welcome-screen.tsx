@@ -1,19 +1,20 @@
 // app/(public)/welcome.tsx
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Image, Platform, StyleSheet, View } from "react-native";
-import { Button, Text } from "react-native-paper"; // Assuming React Native Paper based on variants
-import { useAppDispatch } from "../../hooks/hooks";
-import { setRole } from "../../store";
-import { completeOnboarding } from "../../store/authSlice";
-// Placeholder component imports - swap with your actual file paths
+import {
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { Text } from "react-native-paper";
 import { BreathingButton } from "../../components/global/BreathingButton";
 import { LoadingOverlay } from "../../components/global/LoadingOverlay";
+import { useAppDispatch } from "../../hooks";
+import { setRole } from "../../store";
 
-// Mock font sizing utility if you have one, otherwise fallback to static standard sizes
-const getFontSize = (size: number) => size;
-
-// Mock configuration check
 const cfg = { values: { env: "dev" } };
 
 export default function WelcomeScreen() {
@@ -22,35 +23,28 @@ export default function WelcomeScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleGetStarted = async () => {
-    setIsLoading(true);
-    // Mark onboarding as completed in Redux + Disk storage
-    await dispatch(completeOnboarding());
-    setIsLoading(false);
-
-    // The Layout Protection engine will now evaluate hasOnboarded=true,
-    // and since isAuthenticated=false, it will auto-redirect them seamlessly to /(auth)/sign-in
+    router.replace("/signin");
   };
 
   const handleContinueAsGuest = async () => {
     setIsLoading(true);
-    // Even as a guest, we mark onboarding as done so they don't see the carousel again
-    await dispatch(completeOnboarding());
-    // 💡 Explicitly tag the state container role context as guest
     dispatch(setRole("guest"));
     setIsLoading(false);
-
-    // Deep link directly to your public property search platform screen
-    // Make sure your app/_layout.tsx protection bypasses or allows guests to hit this route!
-    router.replace("/(public)/search-property");
+    router.replace("/search-property");
   };
 
   return (
-    <>
+    <View style={styles.container}>
       <LoadingOverlay
         message="Please wait while redirecting..."
         isLoading={isLoading}
       />
-      <View style={styles.page}>
+
+      <ScrollView
+        style={styles.scrollViewShell}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <Image
           resizeMode="contain"
           source={require("../../../assets/start-page.png")}
@@ -61,83 +55,129 @@ export default function WelcomeScreen() {
           <Text style={styles.title} variant="headlineLarge">
             Welcome to Rent Hub
           </Text>
-          <Text
-            variant="headlineSmall"
-            style={{ textAlign: "center", fontSize: getFontSize(16) }}
-          >
+          <Text variant="headlineSmall" style={styles.subtitle}>
             Excellence in renting.
           </Text>
         </View>
 
+        {/* 💡 Explicit stretching row container layer */}
         <View style={styles.btnViews}>
-          {/* Main Action: Onboarding flow flag sets, then targets auth entry stacks */}
-          <BreathingButton onPress={handleGetStarted} label="Get Started" />
+          <View style={styles.buttonWrapperRow}>
+            <BreathingButton onPress={handleGetStarted} label="Get Started" />
+          </View>
 
-          <Button
-            style={styles.guestBtn}
-            mode="contained"
-            uppercase
+          <Pressable
+            style={({ pressed }) => [
+              styles.customBtn,
+              styles.guestBtn,
+              pressed && styles.pressed,
+            ]}
             onPress={handleContinueAsGuest}
+            accessibilityRole="button"
           >
-            Continue as guest
-          </Button>
+            <Text style={styles.guestBtnLabel}>CONTINUE AS GUEST</Text>
+          </Pressable>
 
           {cfg.values.env !== "pro" && (
-            <Button
-              mode="contained"
-              uppercase
-              style={styles.debugBtn}
-              onPress={() => router.push("/(public)/debug-screen")}
+            <Pressable
+              style={({ pressed }) => [
+                styles.customBtn,
+                styles.debugBtn,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => router.push("/debug-screen" as any)}
+              accessibilityRole="button"
             >
-              debugs
-            </Button>
+              <Text style={styles.debugBtnLabel}>DEBUGS</Text>
+            </Pressable>
           )}
         </View>
-      </View>
-    </>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
+  container: {
     flex: 1,
     backgroundColor: "#FFF",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    maxWidth: Platform.OS === "web" ? 600 : "100%",
-    alignSelf: "center",
     width: "100%",
   },
+  scrollViewShell: {
+    flex: 1,
+    width: "100%",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 500 : "100%",
+    alignSelf: "center", // Anchors content frame centered on wide browser monitors
+  },
   img: {
-    width: "80%",
-    height: 300,
-    marginTop: 20,
+    width: "100%",
+    height: undefined,
+    aspectRatio: 1.33,
+    maxHeight: 260,
+    marginBottom: 24,
   },
   introTxt: {
     alignItems: "center",
-    marginVertical: 20,
+    marginBottom: 32,
+    width: "100%",
   },
   title: {
-    fontWeight: "700",
+    fontWeight: "800",
     textAlign: "center",
     marginBottom: 8,
     color: "#1C1C1E",
   },
+  subtitle: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#666",
+  },
   btnViews: {
     width: "100%",
-    gap: 14,
-    paddingBottom: 20,
+    gap: 12,
+    alignItems: "stretch", // Forces children blocks to expand edge-to-edge
+  },
+  buttonWrapperRow: {
+    width: "100%",
+    alignItems: "stretch",
+  },
+  customBtn: {
+    width: "100%",
+    height: 52,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
   },
   guestBtn: {
     backgroundColor: "#E5E5EA",
-    paddingVertical: 4,
-    borderRadius: 8,
+  },
+  guestBtnLabel: {
+    color: "#1C1C1E",
+    fontWeight: "700",
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
   debugBtn: {
     backgroundColor: "#FF3B30",
-    paddingVertical: 4,
-    borderRadius: 8,
+  },
+  debugBtnLabel: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+  pressed: {
+    opacity: 0.85,
   },
 });
