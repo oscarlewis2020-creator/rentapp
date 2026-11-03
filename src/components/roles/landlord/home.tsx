@@ -17,6 +17,10 @@ import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 // 💡 Sub-view Screen Imports
 import { LandlordActionView } from "../../ui/landlord/action/ActionView";
 import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
+import { LandlordInventory } from "./LandlordInventory";
+import { LandlordPermissions } from "./LandlordPermissions";
+import { LandlordWalletDetails } from "./LandlordWalletDetails";
+import { LandlordWallets } from "./LandlordWallets";
 
 const MOCK_BUILDINGS: BuildingItem[] = [
   { id: "b1", name: "Test 1" },
@@ -56,7 +60,10 @@ export function LandlordHome() {
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("units");
-
+  // 1. Add an extended view state hook tracker right below your active tab hook definitions:
+  const [currentSubDashboard, setCurrentSubDashboard] = useState<
+    "base" | "permissions" | "wallets" | "wallet_details" | "inventory"
+  >("base");
   // Dynamic tab configuration structures
   const tabOptions: TabOption[] = [
     {
@@ -94,9 +101,55 @@ export function LandlordHome() {
     },
   ];
 
+  // 2. Wrap your layout return choices to catch sub-dashboard operations:
+  if (currentSubDashboard === "permissions") {
+    return <LandlordPermissions />;
+  }
+
+  // Check path rendering criteria:
+  if (currentSubDashboard === "wallets") {
+    return (
+      <LandlordWallets
+        onManualWalletPress={() => setCurrentSubDashboard("wallet_details")}
+        onCreateWalletPress={() => setIsModalVisible(true)}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "wallet_details") {
+    return (
+      <LandlordWalletDetails
+        onBackPress={() => setCurrentSubDashboard("wallets")} // Direct return back onto wallet dashboard
+        onTransactionsPress={() => console.log("Open full ledger log streams")}
+        onFilterPress={() =>
+          console.log("Open transaction filters options sheet")
+        }
+        onSortPress={() => console.log("Toggle ledger element sorting")}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "inventory") {
+    return (
+      <LandlordInventory
+        onAddItemPress={() =>
+          console.log("Launch Add Inventory Asset Item Form component sheet")
+        }
+      />
+    );
+  }
+
   // Handler for menu selections inside the Extra tab view
   const handleMenuNavigation = (menuId: string) => {
-    console.log(`Navigate layout target to sub-dashboard: ${menuId}`);
+    if (menuId === "permissions") {
+      setCurrentSubDashboard("permissions");
+    } else if (menuId === "wallets") {
+      setCurrentSubDashboard("wallets"); // 💡 SWITCH TO WALLETS SUB-VIEW PANEL ON TAP
+    } else if (menuId === "inventory") {
+      setCurrentSubDashboard("inventory"); // 💡 LAUNCH THE COMPREHENSIVE INVENTORY SUB-VIEW PANEL ON CLICK
+    } else {
+      console.log(`Open other menus: ${menuId}`);
+    }
   };
 
   return (
