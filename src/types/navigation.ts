@@ -9,11 +9,11 @@ export interface WorkspaceData {
 }
 
 // Layout Registry mapping forces components to follow explicit contracts
-export type RoleScreenRegistry = Record<UserRole | "guest", React.ReactElement>;
+export type RoleScreenRegistry = Record<UserRole, React.ReactElement>;
 
 export interface RoleContextType {
   currentRole: UserRole | "guest";
-  setCurrentRole: (role: UserRole) => void;
+  setCurrentRole: (role: UserRole | "guest") => void;
   isDrawerOpen: boolean;
   setIsDrawerOpen: (open: boolean) => void;
 }

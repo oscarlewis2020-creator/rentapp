@@ -1,11 +1,11 @@
 // app/_layout.tsx
-// import { PowerSyncContext } from "@powersync/react";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router"; // 💡 Add usePathname to prevent layout loops
 import { createContext, useContext, useEffect, useState } from "react";
-// import { db } from "../db/client";
-import { setRole } from "../store";
-import { bootstrapAuthSession } from "../store/authSlice"; // Corrected thunk name match
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { PaperProvider } from "react-native-paper";
+import { Provider } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../hooks";
+import { setRole, store } from "../store";
+import { bootstrapAuthSession } from "../store/authSlice";
 import { RoleContextType, UserRole } from "../types/navigation";
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -18,56 +18,87 @@ export const useUserRole = () => {
 };
 
 function RootLayoutContent() {
-  // 💡 Destructure matches 'isInitializing' from the Redux state exactly
-  const { isAuthenticated, hasOnboarded, isInitializing } = useAppSelector(
-    (state) => state.auth,
-  );
-
-  // Destructure currentRole from your role slice
+  const {
+    isAuthenticated,
+    hasOnboarded,
+    isInitializing,
+    isInitWorkflowComplete,
+  } = useAppSelector((state) => state.auth);
   const { currentRole } = useAppSelector((state) => state.role);
-
-  // Keep UI-only layout state local
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const pathname = usePathname(); // 💡 Track current position safely
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
-  const dispatch = useAppDispatch();
-  const segments = useSegments();
-  const router = useRouter();
-
-  // 1. Trigger storage validation session on app launch
   useEffect(() => {
     dispatch(bootstrapAuthSession());
   }, [dispatch]);
 
-  // 2. Continuous Route Protection Engine
+  // 💡 Root Firewall: Handles high-level redirection boundaries safely
   useEffect(() => {
-    // Prevent any redirection evaluations during data loading
     if (isInitializing) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
-    const inOnboardingGroup = segments[0] === "(public)";
-
+    // --- CASE A: ONBOARDING CAROUSEL ENFORCEMENT ---
     if (!hasOnboarded) {
-      if (!inOnboardingGroup) {
-        router.replace("/(public)");
+      if (pathname !== "/") {
+        router.replace("/");
       }
-    } else if (!isAuthenticated) {
-      if (!inAuthGroup) {
-        router.replace("/(auth)/signin");
+      return;
+    }
+
+    // --- CASE B: 🔥 CORRECTED SECURITY FIREWALL FOR UN-AUTHENTICATED STRREAMS ---
+    if (!isAuthenticated) {
+      // Rule 1: If they explicitly chose Guest Mode, let them browse the public search catalog
+      if (currentRole === "guest") {
+        if (pathname !== "/search-property") {
+          router.replace("/search-property" as any);
+        }
+        return;
       }
-    } else if (inAuthGroup || inOnboardingGroup) {
+
+      // Rule 2: Standard unauthenticated returning users are locked to Welcome or Signin paths
+      const isPublicAuthArea =
+        pathname === "/welcome-screen" ||
+        pathname.startsWith("/signin") ||
+        pathname === "/debug-screen";
+      if (!isPublicAuthArea) {
+        router.replace("/welcome-screen" as any); // 🛡️ Securely anchors them to the front door
+      }
+      return;
+    }
+
+    // --- CASE C: AUTHENTICATED BUT POST-AUTH SETUP INCOMPLETE ---
+    if (!isInitWorkflowComplete) {
+      if (pathname !== "/init-screen") {
+        router.replace("/(auth)/init-screen" as any);
+      }
+      return;
+    }
+
+    // --- CASE D: FULLY AUTHENTICATED CORE EXPERIENCE GATEWAY ---
+    // If they are hanging around on the landing screens, push them straight into dashboard tabs
+    if (
+      pathname === "/welcome-screen" ||
+      pathname.startsWith("/signin") ||
+      pathname === "/init-screen"
+    ) {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, hasOnboarded, isInitializing, segments, router]);
+  }, [
+    isAuthenticated,
+    hasOnboarded,
+    isInitializing,
+    isInitWorkflowComplete,
+    currentRole,
+    pathname,
+    router,
+  ]);
 
-  // 3. Prevent rendering anything until initialization states resolve
-  if (isInitializing) {
-    return null;
-  }
+  if (isInitializing) return null;
 
-  // Context mapping placeholder to update Redux role state
   const roleContextValue: RoleContextType = {
     currentRole,
-    setCurrentRole: (role: UserRole) => dispatch(setRole(role)), // Clean and type-safe!
+    setCurrentRole: (role: UserRole | "guest") => dispatch(setRole(role)),
     isDrawerOpen,
     setIsDrawerOpen,
   };
@@ -76,20 +107,21 @@ function RootLayoutContent() {
     <RoleContext.Provider value={roleContextValue}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(public)" />
-        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(auth)/signin" />
+        <Stack.Screen name="(auth)/init-screen" />
         <Stack.Screen name="(tabs)" />
       </Stack>
     </RoleContext.Provider>
   );
 }
 
-import { StyleSheet, Text, View } from "react-native";
-
-export default function PlaceholderScreen() {
+export default function RootLayout() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Placeholder Screen</Text>
-    </View>
+    <Provider store={store}>
+      <PaperProvider>
+        <RootLayoutContent />
+      </PaperProvider>
+    </Provider>
   );
 }
 

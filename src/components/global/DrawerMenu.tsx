@@ -10,8 +10,8 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useUserRole } from "../app/_layout";
-import { UserRole } from "../types/navigation";
+import { useUserRole } from "../../app/_layout";
+import { UserRole } from "../../types/navigation";
 
 export default function DrawerMenu() {
   const { currentRole, setCurrentRole, isDrawerOpen, setIsDrawerOpen } =

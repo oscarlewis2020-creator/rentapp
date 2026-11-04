@@ -1,5 +1,5 @@
 // import { PowerSyncDatabase } from "@powersync/react-native";
-// import { AppSchema } from "../db/schemaschema";
+// import { AppSchema } from "./schema";
 
 // // Instantiate the single, global database manager
 // export const db = new PowerSyncDatabase({

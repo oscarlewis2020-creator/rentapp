@@ -1,6 +1,6 @@
 import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import authReducer from "./authSlice";
 import { UserRole } from "../types/navigation";
+import authReducer from "./authSlice";
 
 // Define the shape of your role state
 interface RoleState {
@@ -8,7 +8,7 @@ interface RoleState {
 }
 
 const initialRoleState: RoleState = {
-  currentRole: "guest",
+  currentRole: "landlord",
 };
 
 // Replace your mock reducer with a clean Redux Toolkit slice
@@ -16,7 +16,7 @@ const roleSlice = createSlice({
   name: "role",
   initialState: initialRoleState,
   reducers: {
-    setRole: (state, action: PayloadAction<UserRole>) => {
+    setRole: (state, action: PayloadAction<UserRole | "guest">) => {
       state.currentRole = action.payload; // Direct, safe mutation allowed by RTK
     },
   },
