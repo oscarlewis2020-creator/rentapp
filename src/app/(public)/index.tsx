@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet } from "react-native";
+import { Text, View } from "react-native";
 
-export function IndexScreen() {
+export default function IndexScreen() {
   return (
     <View>
       <Text> Onboarding screens</Text>

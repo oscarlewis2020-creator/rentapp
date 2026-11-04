@@ -1,10 +1,9 @@
 // app/_layout.tsx
-import { PowerSyncContextProvider } from "@powersync/react";
+// import { PowerSyncContext } from "@powersync/react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { createContext, useContext, useEffect, useState } from "react";
-import { Provider } from "react-redux";
-import { db } from "../db/client";
-import { setRole, store } from "../store";
+// import { db } from "../db/client";
+import { setRole } from "../store";
 import { bootstrapAuthSession } from "../store/authSlice"; // Corrected thunk name match
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { RoleContextType, UserRole } from "../types/navigation";
@@ -53,7 +52,7 @@ function RootLayoutContent() {
       }
     } else if (!isAuthenticated) {
       if (!inAuthGroup) {
-        router.replace("/(auth)/sign-in");
+        router.replace("/(auth)/signin");
       }
     } else if (inAuthGroup || inOnboardingGroup) {
       router.replace("/(tabs)");
@@ -84,14 +83,36 @@ function RootLayoutContent() {
   );
 }
 
-// Absolute App Entry Point
-export default function RootLayout() {
+import { StyleSheet, Text, View } from "react-native";
+
+export default function PlaceholderScreen() {
   return (
-    <Provider store={store}>
-      {/* 📦 Connects the PowerSync context globally alongside Redux */}
-      <PowerSyncContextProvider db={db}>
-        <RootLayoutContent />
-      </PowerSyncContextProvider>
-    </Provider>
+    <View style={styles.container}>
+      <Text style={styles.text}>Placeholder Screen</Text>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0f172a",
+  },
+  text: {
+    color: "#f8fafc",
+    fontSize: 16,
+  },
+});
+// Absolute App Entry Point
+// export default function RootLayout() {
+//   return (
+//     <Provider store={store}>
+//       {/* 📦 Connects the PowerSync context globally alongside Redux */}
+//       <PowerSyncContext.Provider value={db}>
+//         <RootLayoutContent />
+//       </PowerSyncContext.Provider>
+//     </Provider>
+//   );
+// }
