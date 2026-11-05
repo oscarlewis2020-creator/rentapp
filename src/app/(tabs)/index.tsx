@@ -1,11 +1,13 @@
 // app/(tabs)/index.tsx
-import { Text, View, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { useAppSelector } from "../../hooks";
 import { RoleScreenRegistry } from "../../types/navigation";
 // Import your custom role-specific content layouts
 import { ErrorComponent } from "../../components/global/ErrorComponent";
 import { LandlordHome } from "../../components/roles/landlord/home";
 import { SalesHome } from "../../components/roles/sales/home";
+import TenantHome from "../../components/roles/tenant/home";
+
 // import { TenantHome } from "../../components/roles/tenant/home";
 
 export default function GenericHomeScreen() {
@@ -13,11 +15,7 @@ export default function GenericHomeScreen() {
 
   // 💡 Define your strict functional view registry map (Omitting guest since they are firewall-blocked)
   const homeRegistry: RoleScreenRegistry = {
-    tenant: (
-      <View style={styles.center}>
-        <Text>Tenant home Coming Soon</Text>
-      </View>
-    ), // Placeholder
+    tenant: <TenantHome />,
     landlord: <LandlordHome />,
     sales: <SalesHome />,
   };

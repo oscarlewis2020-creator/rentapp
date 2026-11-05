@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "../hooks";
 import { setRole, store } from "../store";
 import { bootstrapAuthSession } from "../store/authSlice";
 import { RoleContextType, UserRole } from "../types/navigation";
+import { StyleSheet } from "react-native";
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 

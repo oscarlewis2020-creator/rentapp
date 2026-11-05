@@ -6,7 +6,7 @@ import { router } from "expo-router";
 export default function SearchCard() {
   const handlePress = () => {
     // Navigates to the independent Search screen
-    router.push("../screens/tenant/search");
+    router.push("/search");
   };
 
   return (
