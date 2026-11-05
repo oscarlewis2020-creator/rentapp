@@ -17,8 +17,14 @@ import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 // 💡 Sub-view Screen Imports
 import { LandlordActionView } from "../../ui/landlord/action/ActionView";
 import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
+import { LandlordBuildingDetails } from "./LandlordBuildingDetails";
+import { LandlordBuildingSettings } from "./LandlordBuildingSettings";
+import { LandlordBuildingTenants } from "./LandlordBuildingTenants";
+import { LandlordBulkSms } from "./LandlordBulkSms";
 import { LandlordInventory } from "./LandlordInventory";
 import { LandlordPermissions } from "./LandlordPermissions";
+import { LandlordSmsDetails } from "./LandlordSmsDetailsScreen";
+import { LandlordStatementVerification } from "./LandlordStatementVerification";
 import { LandlordWalletDetails } from "./LandlordWalletDetails";
 import { LandlordWallets } from "./LandlordWallets";
 
@@ -60,9 +66,25 @@ export function LandlordHome() {
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("units");
+  const [focusedSmsRow, setFocusedSmsRow] = useState({
+    title: "",
+    bodyText: "",
+    isEnabled: false,
+  });
+
   // 1. Add an extended view state hook tracker right below your active tab hook definitions:
   const [currentSubDashboard, setCurrentSubDashboard] = useState<
-    "base" | "permissions" | "wallets" | "wallet_details" | "inventory"
+    | "base"
+    | "permissions"
+    | "wallets"
+    | "wallet_details"
+    | "inventory"
+    | "building_details"
+    | "building_tenants"
+    | "building_settings"
+    | "statement_verification"
+    | "bulk_sms"
+    | "sms_details"
   >("base");
   // Dynamic tab configuration structures
   const tabOptions: TabOption[] = [
@@ -139,6 +161,69 @@ export function LandlordHome() {
     );
   }
 
+  if (currentSubDashboard === "building_details") {
+    return (
+      <LandlordBuildingDetails
+        onFilterPress={() => console.log("Open leases filtering overlay sheet")}
+        onSortPress={() => console.log("Open leases sorting matrix logs")}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "building_tenants") {
+    return (
+      <LandlordBuildingTenants
+        buildingName={selectedBuilding.name}
+        onBackPress={() => setCurrentSubDashboard("base")}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "building_settings") {
+    return (
+      <LandlordBuildingSettings
+        buildingName={selectedBuilding.name}
+        onBackPress={() => setCurrentSubDashboard("building_tenants")}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "statement_verification") {
+    return (
+      <LandlordStatementVerification
+        buildingName={selectedBuilding.name}
+        onBackPress={() => setCurrentSubDashboard("base")} // Routes gracefully back to core navigation dashboard
+      />
+    );
+  }
+
+  if (currentSubDashboard === "bulk_sms") {
+    return (
+      <LandlordBulkSms
+        buildingName={selectedBuilding.name} // 💡 Passes down the dynamic building title string text
+        onBackPress={() => setCurrentSubDashboard("base")} // Clears sub-state to reveal the main screen grid layout
+        onViewDetailsPress={(item) => {
+          // 💡 3. Safely update parent state blocks here!
+          setFocusedSmsRow({
+            title: item.title,
+            bodyText: item.expandedText,
+            isEnabled: item.isEnabled,
+          });
+          setCurrentSubDashboard("sms_details");
+        }}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "sms_details") {
+    return (
+      <LandlordSmsDetails
+        smsDetailData={focusedSmsRow} // 💡 Binds dynamic card choices values seamlessly
+        onBackPress={() => setCurrentSubDashboard("bulk_sms")} // Safely cascades back out into bulk sms dashboard matrix view on click
+      />
+    );
+  }
+
   // Handler for menu selections inside the Extra tab view
   const handleMenuNavigation = (menuId: string) => {
     if (menuId === "permissions") {
@@ -147,8 +232,18 @@ export function LandlordHome() {
       setCurrentSubDashboard("wallets"); // 💡 SWITCH TO WALLETS SUB-VIEW PANEL ON TAP
     } else if (menuId === "inventory") {
       setCurrentSubDashboard("inventory"); // 💡 LAUNCH THE COMPREHENSIVE INVENTORY SUB-VIEW PANEL ON CLICK
+    } else if (menuId === "building_details" || menuId === "details") {
+      setCurrentSubDashboard("building_details"); // 💡 ROUTE DIRECTLY TO REPLICATED BUILDING VIEW DETAILS SCREEN
+    } else if (menuId === "building_tenants" || menuId === "tenants") {
+      setCurrentSubDashboard("building_tenants"); // 💡 ROUTE TO THE BUILDING TENANTS LAYOUT
+    } else if (menuId === "building_settings" || menuId === "settings") {
+      setCurrentSubDashboard("building_settings");
+    } else if (menuId === "statement_verification" || menuId === "statement") {
+      setCurrentSubDashboard("statement_verification");
+    } else if (menuId === "bulk_sms" || menuId === "sms") {
+      setCurrentSubDashboard("bulk_sms");
     } else {
-      console.log(`Open other menus: ${menuId}`);
+      console.log(`Open option category: ${menuId}`);
     }
   };
 
