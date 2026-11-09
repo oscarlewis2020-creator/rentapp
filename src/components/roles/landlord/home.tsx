@@ -1,7 +1,13 @@
 // components/roles/landlord/LandlordHome.tsx
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState } from "react";
-import { FlatList, Platform, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  BackHandler,
+  FlatList,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Reusable Core layout UI Components
@@ -17,14 +23,18 @@ import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 // 💡 Sub-view Screen Imports
 import { LandlordActionView } from "../../ui/landlord/action/ActionView";
 import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
+import { LandlordAnalytics } from "./LandlordAnalytics";
 import { LandlordBuildingDetails } from "./LandlordBuildingDetails";
 import { LandlordBuildingSettings } from "./LandlordBuildingSettings";
 import { LandlordBuildingTenants } from "./LandlordBuildingTenants";
 import { LandlordBulkSms } from "./LandlordBulkSms";
 import { LandlordInventory } from "./LandlordInventory";
 import { LandlordPermissions } from "./LandlordPermissions";
+import { LandlordPurchaseTokensScreen } from "./LandlordPurchaseTokens";
+import { LandlordSearchTenantScreen } from "./LandlordSearchTenantScreen";
 import { LandlordSmsDetails } from "./LandlordSmsDetailsScreen";
 import { LandlordStatementVerification } from "./LandlordStatementVerification";
+import { LandlordUnitPerformanceScreen } from "./LandlordUnitPerfomanceScreen";
 import { LandlordWalletDetails } from "./LandlordWalletDetails";
 import { LandlordWallets } from "./LandlordWallets";
 
@@ -60,6 +70,24 @@ const MOCK_UNITS: UnitItem[] = [
   },
 ];
 
+// 1. Define your view state tracking handles types explicitly
+type DashboardState =
+  | "base"
+  | "permissions"
+  | "wallets"
+  | "wallet_details"
+  | "inventory"
+  | "building_details"
+  | "building_tenants"
+  | "building_settings"
+  | "statement_verification"
+  | "bulk_sms"
+  | "sms_details"
+  | "purchase_tokens"
+  | "search_tenant"
+  | "analytics"
+  | "unit_performance";
+
 export function LandlordHome() {
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingItem>(
     MOCK_BUILDINGS[0],
@@ -72,20 +100,6 @@ export function LandlordHome() {
     isEnabled: false,
   });
 
-  // 1. Add an extended view state hook tracker right below your active tab hook definitions:
-  const [currentSubDashboard, setCurrentSubDashboard] = useState<
-    | "base"
-    | "permissions"
-    | "wallets"
-    | "wallet_details"
-    | "inventory"
-    | "building_details"
-    | "building_tenants"
-    | "building_settings"
-    | "statement_verification"
-    | "bulk_sms"
-    | "sms_details"
-  >("base");
   // Dynamic tab configuration structures
   const tabOptions: TabOption[] = [
     {
@@ -122,6 +136,111 @@ export function LandlordHome() {
       ),
     },
   ];
+
+  // 1. Add an extended view state hook tracker right below your active tab hook definitions:
+  const [currentSubDashboard, setCurrentSubDashboard] =
+    useState<DashboardState>("base");
+  const [historyStack, setHistoryStack] = useState<DashboardState[]>(["base"]);
+
+  // 💡 Platform-Agnostic Navigation Wrapper Function
+  const navigateToSubDashboard = (nextState: DashboardState) => {
+    if (nextState === currentSubDashboard) return;
+
+    // Push next screen choice parameters onto local state tracking matrix list array
+    setHistoryStack((prevStack) => [...prevStack, nextState]);
+    setCurrentSubDashboard(nextState);
+
+    // Web Intercept Integration Layer
+    if (Platform.OS === "web" && window.history) {
+      window.history.pushState({ screen: nextState }, "", "");
+    }
+  };
+
+  // 💡 Platform-Agnostic Backward Navigation Function
+  const navigateBack = () => {
+    if (historyStack.length <= 1) {
+      // If user is at the root "base" screen, fallback actions trigger close app logic parameters
+      return false;
+    }
+
+    setHistoryStack((prevStack) => {
+      const updatedStack = [...prevStack];
+      updatedStack.pop(); // Remove current screen view identifier frame
+      const targetPreviousState =
+        updatedStack[updatedStack.length - 1] || "base";
+
+      setCurrentSubDashboard(targetPreviousState);
+      return updatedStack;
+    });
+
+    return true; // Event handled successfully mapping parameters bounds
+  };
+
+  // 💡 Synchronize hardware back buttons lifecycles (Mobile + Web PopStates)
+  useEffect(() => {
+    // Mobile hardware back handler intercept binding logic layer
+    const backHandlerSubscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => navigateBack(),
+    );
+
+    // Web browser popstate hardware listener alignment matrix
+    const handleWebPopState = (event: PopStateEvent) => {
+      if (event.state && event.state.screen) {
+        setCurrentSubDashboard(event.state.screen);
+        // Sync arrays alignment pointers back down
+        setHistoryStack((prev) => {
+          const idx = prev.indexOf(event.state.screen);
+          return idx !== -1
+            ? prev.slice(0, idx + 1)
+            : ["base", event.state.screen];
+        });
+      } else {
+        setCurrentSubDashboard("base");
+        setHistoryStack(["base"]);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      // Seed an initial baseline layout entry point to hook browsers pops loops context trackers securely
+      if (window.history && !window.history.state) {
+        window.history.replaceState({ screen: "base" }, "", "");
+      }
+      window.addEventListener("popstate", handleWebPopState);
+    }
+
+    return () => {
+      backHandlerSubscription.remove();
+      if (Platform.OS === "web") {
+        window.removeEventListener("popstate", handleWebPopState);
+      }
+    };
+  }, [historyStack, currentSubDashboard]);
+
+  // Handler for menu selections inside the Extra tab view
+  const handleMenuNavigation = (menuId: string) => {
+    if (menuId === "permissions") {
+      navigateToSubDashboard("permissions");
+    } else if (menuId === "wallets") {
+      navigateToSubDashboard("wallets"); // 💡 SWITCH TO WALLETS SUB-VIEW PANEL ON TAP
+    } else if (menuId === "inventory") {
+      navigateToSubDashboard("inventory"); // 💡 LAUNCH THE COMPREHENSIVE INVENTORY SUB-VIEW PANEL ON CLICK
+    } else if (menuId === "building_details" || menuId === "details") {
+      navigateToSubDashboard("building_details"); // 💡 ROUTE DIRECTLY TO REPLICATED BUILDING VIEW DETAILS SCREEN
+    } else if (menuId === "building_tenants" || menuId === "tenants") {
+      navigateToSubDashboard("building_tenants"); // 💡 ROUTE TO THE BUILDING TENANTS LAYOUT
+    } else if (menuId === "building_settings" || menuId === "settings") {
+      navigateToSubDashboard("building_settings");
+    } else if (menuId === "statement_verification" || menuId === "statement") {
+      navigateToSubDashboard("statement_verification");
+    } else if (menuId === "bulk_sms" || menuId === "sms") {
+      navigateToSubDashboard("bulk_sms");
+    } else if (menuId === "analytics" || menuId === "charts") {
+      navigateToSubDashboard("analytics");
+    } else {
+      console.log(`Open option category: ${menuId}`);
+    }
+  };
 
   // 2. Wrap your layout return choices to catch sub-dashboard operations:
   if (currentSubDashboard === "permissions") {
@@ -211,6 +330,8 @@ export function LandlordHome() {
           });
           setCurrentSubDashboard("sms_details");
         }}
+        onPurchaseTokensPress={() => setCurrentSubDashboard("purchase_tokens")}
+        onSearchTenantPress={() => setCurrentSubDashboard("search_tenant")}
       />
     );
   }
@@ -224,28 +345,65 @@ export function LandlordHome() {
     );
   }
 
-  // Handler for menu selections inside the Extra tab view
-  const handleMenuNavigation = (menuId: string) => {
-    if (menuId === "permissions") {
-      setCurrentSubDashboard("permissions");
-    } else if (menuId === "wallets") {
-      setCurrentSubDashboard("wallets"); // 💡 SWITCH TO WALLETS SUB-VIEW PANEL ON TAP
-    } else if (menuId === "inventory") {
-      setCurrentSubDashboard("inventory"); // 💡 LAUNCH THE COMPREHENSIVE INVENTORY SUB-VIEW PANEL ON CLICK
-    } else if (menuId === "building_details" || menuId === "details") {
-      setCurrentSubDashboard("building_details"); // 💡 ROUTE DIRECTLY TO REPLICATED BUILDING VIEW DETAILS SCREEN
-    } else if (menuId === "building_tenants" || menuId === "tenants") {
-      setCurrentSubDashboard("building_tenants"); // 💡 ROUTE TO THE BUILDING TENANTS LAYOUT
-    } else if (menuId === "building_settings" || menuId === "settings") {
-      setCurrentSubDashboard("building_settings");
-    } else if (menuId === "statement_verification" || menuId === "statement") {
-      setCurrentSubDashboard("statement_verification");
-    } else if (menuId === "bulk_sms" || menuId === "sms") {
-      setCurrentSubDashboard("bulk_sms");
-    } else {
-      console.log(`Open option category: ${menuId}`);
-    }
-  };
+  if (currentSubDashboard === "purchase_tokens") {
+    return (
+      <LandlordPurchaseTokensScreen
+        onBackPress={() => setCurrentSubDashboard("bulk_sms")} // Routes user safely back into parent bulk message workspace tree panel context
+      />
+    );
+  }
+
+  if (currentSubDashboard === "search_tenant") {
+    return (
+      <LandlordSearchTenantScreen
+        onBackPress={() => setCurrentSubDashboard("bulk_sms")} // Closes screen back to SMS composer layout
+        onSelectDone={(count, ids) => {
+          console.log(
+            `Selected ${count} tenant recipients. Saved tracking array:`,
+            ids,
+          );
+          // 💡 Hook your local state variables to pass total counts straight back into your modal counters line
+          setCurrentSubDashboard("bulk_sms");
+        }}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "analytics") {
+    return (
+      <View style={{ flex: 1 }}>
+        <LandlordAnalytics
+          buildingName={selectedBuilding.name}
+          onBackPress={navigateBack}
+          onViewUnitPerformancePress={() =>
+            setCurrentSubDashboard("unit_performance")
+          }
+          onBuildingFieldPress={() => setIsModalVisible(true)}
+        />
+
+        {/* 💡 MOUNTED HERE: Accessible when on Analytics screen */}
+        <BuildingPickerModal
+          visible={isModalVisible}
+          buildings={MOCK_BUILDINGS} // 💡 Fixed: Pass your complete properties array pool
+          selectedBuildingId={selectedBuilding.id} // 💡 Fixed: Pass your active property ID string handle
+          onClose={() => setIsModalVisible(false)}
+          onSelectBuilding={(building: BuildingItem) => {
+            setSelectedBuilding(building);
+            setIsModalVisible(false);
+          }}
+        />
+      </View>
+    );
+  }
+
+  if (currentSubDashboard === "unit_performance") {
+    return (
+      <LandlordUnitPerformanceScreen
+        buildingName={selectedBuilding.name}
+        onBackPress={navigateBack} // Shifting routes back smoothly into parent analytics workspace tree panel
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>

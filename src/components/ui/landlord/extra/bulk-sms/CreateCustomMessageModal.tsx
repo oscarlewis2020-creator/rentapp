@@ -16,6 +16,7 @@ interface CreateCustomMessageModalProps {
   buildingName: string;
   onClose: () => void;
   onSendMessage: (title: string, body: string, group: string) => void;
+  onSearchTenantPress: () => void;
 }
 
 type TenantGroup = "all" | "active leases" | "inactive leases" | "leases";
@@ -25,6 +26,7 @@ export default function CreateCustomMessageModal({
   buildingName,
   onClose,
   onSendMessage,
+  onSearchTenantPress,
 }: CreateCustomMessageModalProps) {
   const [selectedGroup, setSelectedGroup] = useState<TenantGroup>("all");
   const [messageTitle, setMessageTitle] = useState("");
@@ -101,7 +103,13 @@ export default function CreateCustomMessageModal({
                   Recipients :{" "}
                   <Ionicons name="person" size={14} color="#8a94a6" /> 0 tenants
                 </Text>
-                <TouchableOpacity style={styles.searchTenantBadge}>
+                <TouchableOpacity
+                  style={styles.searchTenantBadge}
+                  onPress={() => {
+                    onClose();
+                    onSearchTenantPress();
+                  }}
+                >
                   <Ionicons
                     name="person-add-outline"
                     size={14}

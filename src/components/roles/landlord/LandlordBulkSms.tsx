@@ -19,12 +19,16 @@ interface BulkSmsScreenProps {
   buildingName: string;
   onBackPress: () => void;
   onViewDetailsPress: (item: PredefinedSmsItem) => void;
+  onPurchaseTokensPress: () => void;
+  onSearchTenantPress: () => void;
 }
 
 export function LandlordBulkSms({
   buildingName,
   onBackPress,
   onViewDetailsPress,
+  onPurchaseTokensPress,
+  onSearchTenantPress,
 }: BulkSmsScreenProps) {
   const [activeTab, setActiveTab] = useState<"predefined" | "custom">(
     "predefined",
@@ -120,7 +124,10 @@ export function LandlordBulkSms({
                 0
               </Text>
             </View>
-            <TouchableOpacity style={styles.purchaseBtn}>
+            <TouchableOpacity
+              style={styles.purchaseBtn}
+              onPress={onPurchaseTokensPress}
+            >
               <Text style={styles.purchaseBtnText}>+ Purchase Tokens</Text>
             </TouchableOpacity>
           </View>
@@ -194,6 +201,13 @@ export function LandlordBulkSms({
                 No custom SMS found for this property.
               </Text>
             </View>
+          ) : displayedItems.length === 0 ? (
+            // 💡 FIXED: This now properly evaluates and forces the precise text layout matching your image
+            <View style={styles.emptyView}>
+              <Text style={styles.emptyText}>
+                No predefined SMS found for this property.
+              </Text>
+            </View>
           ) : (
             displayedItems.map((item) => (
               <PredefinedSmsCard
@@ -222,6 +236,10 @@ export function LandlordBulkSms({
           buildingName={buildingName}
           onClose={() => setIsCreateModalOpen(false)}
           onSendMessage={() => setIsCreateModalOpen(false)}
+          onSearchTenantPress={() => {
+            setIsCreateModalOpen(false);
+            onSearchTenantPress();
+          }}
         />
 
         <SendSmsConfirmationModal
