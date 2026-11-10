@@ -80,7 +80,7 @@ export function LandlordBuildingDetails({
   return (
     <SafeAreaView style={styles.container}>
       {/* ================= 1. UPPER APPBAR HEADER ROW ================= */}
-      <View style={styles.appBar}>
+      {/* <View style={styles.appBar}>
         <View style={styles.appBarLeft}>
           <TouchableOpacity
             onPress={() => setIsDrawerOpen(true)}
@@ -99,7 +99,7 @@ export function LandlordBuildingDetails({
             <View style={styles.onlineStatusDot} />
           </View>
         </View>
-      </View>
+      </View> */}
 
       {/* ================= 2. CORE WORKSPACE CONTENT STREAM ================= */}
       <ScrollView

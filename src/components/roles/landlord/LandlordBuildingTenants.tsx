@@ -1,12 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface BuildingTenantsScreenProps {
@@ -23,7 +16,7 @@ export function LandlordBuildingTenants({
       {/* Responsive Core Layout Container (Max 600px on Web) */}
       <View style={styles.responsiveWrapper}>
         {/* Top App Bar with back navigation callback */}
-        <View style={styles.appBar}>
+        {/* <View style={styles.appBar}>
           <View style={styles.leftHeader}>
             <TouchableOpacity
               style={styles.iconButton}
@@ -45,7 +38,7 @@ export function LandlordBuildingTenants({
               <View style={styles.onlineDot} />
             </TouchableOpacity>
           </View>
-        </View>
+        </View> */}
 
         {/* Search Input Container Matrix */}
         <View style={styles.searchContainer}>

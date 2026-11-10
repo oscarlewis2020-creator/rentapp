@@ -30,7 +30,7 @@ export function LandlordPurchaseTokensScreen({
       {/* Responsive Core Layout Container Framework Box (Max 600px Width on Web) */}
       <View style={styles.responsiveWrapper}>
         {/* Top App Header bar alignment layout matching Image 2 */}
-        <View style={styles.appBar}>
+        {/* <View style={styles.appBar}>
           <View style={styles.leftHeader}>
             <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
               <Ionicons name="menu" size={24} color="#fff" />
@@ -46,7 +46,7 @@ export function LandlordPurchaseTokensScreen({
               <View style={styles.onlineDot} />
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* Core Multi-Field Inputs Form Container block */}
         <View style={styles.formContentCardContainer}>

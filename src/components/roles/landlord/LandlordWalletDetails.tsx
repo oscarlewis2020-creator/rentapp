@@ -42,7 +42,7 @@ export function LandlordWalletDetails({
   return (
     <SafeAreaView style={styles.container}>
       {/* ================= 1. UPPER APPBAR ROW NAVIGATION ================= */}
-      <View style={styles.appBar}>
+      {/* <View style={styles.appBar}>
         <View style={styles.appBarLeft}>
           <TouchableOpacity
             onPress={() => setIsDrawerOpen(true)}
@@ -62,7 +62,7 @@ export function LandlordWalletDetails({
             <View style={styles.onlineIndicatorDot} />
           </View>
         </View>
-      </View>
+      </View> */}
 
       {/* ================= 2. CORE WORKSPACE AREA CONTROLLER ================= */}
       <ScrollView

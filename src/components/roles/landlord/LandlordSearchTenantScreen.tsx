@@ -71,7 +71,7 @@ export function LandlordSearchTenantScreen({
       {/* Responsive Core Layout Container Framework (Max 600px width on Web targets) */}
       <View style={styles.responsiveWrapper}>
         {/* Top Header App Bar */}
-        <View style={styles.appBar}>
+        {/* <View style={styles.appBar}>
           <View style={styles.leftHeader}>
             <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -84,7 +84,7 @@ export function LandlordSearchTenantScreen({
               <View style={styles.onlineDot} />
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* Floating Search Row Input Box Field */}
         <View style={styles.searchContainer}>

@@ -93,8 +93,8 @@ export function LandlordPermissions() {
   return (
     <SafeAreaView style={styles.container}>
       {/* ================= UPPER NAVIGATION APPBAR ROW ================= */}
-      <View style={styles.appBar}>
-        <View style={styles.appBarLeft}>
+      {/* <View style={styles.appBar}> */}
+      {/* <View style={styles.appBarLeft}>
           <TouchableOpacity
             onPress={() => setIsDrawerOpen(true)}
             style={styles.backButton}
@@ -112,7 +112,7 @@ export function LandlordPermissions() {
             <Text style={styles.avatarText}>L</Text>
           </View>
         </View>
-      </View>
+      </View> */}
 
       {/* ================= MAIN SCROLL VIEW WINDOW CONTROLLER ================= */}
       <ScrollView
@@ -247,61 +247,61 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     position: "relative",
   },
-  appBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1C2534",
-    backgroundColor: "#121824",
-  },
-  appBarLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  backButton: {
-    padding: 2,
-  },
-  appBarTitle: {
-    color: "#FFF",
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  appBarRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  appBarIconButton: {
-    position: "relative",
-    padding: 2,
-  },
-  notificationDot: {
-    position: "absolute",
-    top: 2,
-    right: 2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#4CD964", // Green active dot marker choice matching layout aspect
-  },
-  avatarCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#85C1E9",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  avatarText: {
-    color: "#121824",
-    fontSize: 15,
-    fontWeight: "700",
-  },
+  // appBar: {
+  //   flexDirection: "row",
+  //   justifyContent: "space-between",
+  //   alignItems: "center",
+  //   paddingHorizontal: 16,
+  //   paddingVertical: 14,
+  //   borderBottomWidth: 1,
+  //   borderBottomColor: "#1C2534",
+  //   backgroundColor: "#121824",
+  // },
+  // appBarLeft: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   gap: 16,
+  // },
+  // backButton: {
+  //   padding: 2,
+  // },
+  // appBarTitle: {
+  //   color: "#FFF",
+  //   fontSize: 20,
+  //   fontWeight: "600",
+  // },
+  // appBarRight: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   gap: 16,
+  // },
+  // appBarIconButton: {
+  //   position: "relative",
+  //   padding: 2,
+  // },
+  // notificationDot: {
+  //   position: "absolute",
+  //   top: 2,
+  //   right: 2,
+  //   width: 8,
+  //   height: 8,
+  //   borderRadius: 4,
+  //   backgroundColor: "#4CD964", // Green active dot marker choice matching layout aspect
+  // },
+  // avatarCircle: {
+  //   width: 34,
+  //   height: 34,
+  //   borderRadius: 17,
+  //   backgroundColor: "#85C1E9",
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   position: "relative",
+  // },
+  // avatarText: {
+  //   color: "#121824",
+  //   fontSize: 15,
+  //   fontWeight: "700",
+  // },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 24,

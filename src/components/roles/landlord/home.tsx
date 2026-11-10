@@ -1,13 +1,7 @@
 // components/roles/landlord/LandlordHome.tsx
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import {
-  BackHandler,
-  FlatList,
-  Platform,
-  StyleSheet,
-  View,
-} from "react-native";
+import { FlatList, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Reusable Core layout UI Components
@@ -21,6 +15,7 @@ import { SegmentTabs, TabOption } from "../../ui/landlord/units/SegmentTabs";
 import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 
 // 💡 Sub-view Screen Imports
+import { useGlobalNavigation } from "@/context/NavigationContext";
 import { LandlordActionView } from "../../ui/landlord/action/ActionView";
 import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
 import { LandlordAnalytics } from "./LandlordAnalytics";
@@ -69,24 +64,6 @@ const MOCK_UNITS: UnitItem[] = [
     status: "vacant",
   },
 ];
-
-// 1. Define your view state tracking handles types explicitly
-type DashboardState =
-  | "base"
-  | "permissions"
-  | "wallets"
-  | "wallet_details"
-  | "inventory"
-  | "building_details"
-  | "building_tenants"
-  | "building_settings"
-  | "statement_verification"
-  | "bulk_sms"
-  | "sms_details"
-  | "purchase_tokens"
-  | "search_tenant"
-  | "analytics"
-  | "unit_performance";
 
 export function LandlordHome() {
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingItem>(
@@ -137,85 +114,17 @@ export function LandlordHome() {
     },
   ];
 
-  // 1. Add an extended view state hook tracker right below your active tab hook definitions:
-  const [currentSubDashboard, setCurrentSubDashboard] =
-    useState<DashboardState>("base");
-  const [historyStack, setHistoryStack] = useState<DashboardState[]>(["base"]);
+  const {
+    currentSubDashboard,
+    navigateToSubDashboard,
+    navigateBack,
+    updateBuildingName,
+  } = useGlobalNavigation();
 
-  // 💡 Platform-Agnostic Navigation Wrapper Function
-  const navigateToSubDashboard = (nextState: DashboardState) => {
-    if (nextState === currentSubDashboard) return;
-
-    // Push next screen choice parameters onto local state tracking matrix list array
-    setHistoryStack((prevStack) => [...prevStack, nextState]);
-    setCurrentSubDashboard(nextState);
-
-    // Web Intercept Integration Layer
-    if (Platform.OS === "web" && window.history) {
-      window.history.pushState({ screen: nextState }, "", "");
-    }
-  };
-
-  // 💡 Platform-Agnostic Backward Navigation Function
-  const navigateBack = () => {
-    if (historyStack.length <= 1) {
-      // If user is at the root "base" screen, fallback actions trigger close app logic parameters
-      return false;
-    }
-
-    setHistoryStack((prevStack) => {
-      const updatedStack = [...prevStack];
-      updatedStack.pop(); // Remove current screen view identifier frame
-      const targetPreviousState =
-        updatedStack[updatedStack.length - 1] || "base";
-
-      setCurrentSubDashboard(targetPreviousState);
-      return updatedStack;
-    });
-
-    return true; // Event handled successfully mapping parameters bounds
-  };
-
-  // 💡 Synchronize hardware back buttons lifecycles (Mobile + Web PopStates)
+  // 💡 2. Keep the unified text headers synchronized globally whenever properties change
   useEffect(() => {
-    // Mobile hardware back handler intercept binding logic layer
-    const backHandlerSubscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => navigateBack(),
-    );
-
-    // Web browser popstate hardware listener alignment matrix
-    const handleWebPopState = (event: PopStateEvent) => {
-      if (event.state && event.state.screen) {
-        setCurrentSubDashboard(event.state.screen);
-        // Sync arrays alignment pointers back down
-        setHistoryStack((prev) => {
-          const idx = prev.indexOf(event.state.screen);
-          return idx !== -1
-            ? prev.slice(0, idx + 1)
-            : ["base", event.state.screen];
-        });
-      } else {
-        setCurrentSubDashboard("base");
-        setHistoryStack(["base"]);
-      }
-    };
-
-    if (Platform.OS === "web") {
-      // Seed an initial baseline layout entry point to hook browsers pops loops context trackers securely
-      if (window.history && !window.history.state) {
-        window.history.replaceState({ screen: "base" }, "", "");
-      }
-      window.addEventListener("popstate", handleWebPopState);
-    }
-
-    return () => {
-      backHandlerSubscription.remove();
-      if (Platform.OS === "web") {
-        window.removeEventListener("popstate", handleWebPopState);
-      }
-    };
-  }, [historyStack, currentSubDashboard]);
+    updateBuildingName(selectedBuilding.name);
+  }, [selectedBuilding, updateBuildingName]);
 
   // Handler for menu selections inside the Extra tab view
   const handleMenuNavigation = (menuId: string) => {
@@ -251,7 +160,7 @@ export function LandlordHome() {
   if (currentSubDashboard === "wallets") {
     return (
       <LandlordWallets
-        onManualWalletPress={() => setCurrentSubDashboard("wallet_details")}
+        onManualWalletPress={() => navigateToSubDashboard("wallet_details")}
         onCreateWalletPress={() => setIsModalVisible(true)}
       />
     );
@@ -260,7 +169,7 @@ export function LandlordHome() {
   if (currentSubDashboard === "wallet_details") {
     return (
       <LandlordWalletDetails
-        onBackPress={() => setCurrentSubDashboard("wallets")} // Direct return back onto wallet dashboard
+        onBackPress={() => navigateToSubDashboard("wallets")} // Direct return back onto wallet dashboard
         onTransactionsPress={() => console.log("Open full ledger log streams")}
         onFilterPress={() =>
           console.log("Open transaction filters options sheet")
@@ -293,7 +202,7 @@ export function LandlordHome() {
     return (
       <LandlordBuildingTenants
         buildingName={selectedBuilding.name}
-        onBackPress={() => setCurrentSubDashboard("base")}
+        onBackPress={() => navigateToSubDashboard("base")}
       />
     );
   }
@@ -302,7 +211,7 @@ export function LandlordHome() {
     return (
       <LandlordBuildingSettings
         buildingName={selectedBuilding.name}
-        onBackPress={() => setCurrentSubDashboard("building_tenants")}
+        onBackPress={() => navigateToSubDashboard("building_tenants")}
       />
     );
   }
@@ -311,7 +220,7 @@ export function LandlordHome() {
     return (
       <LandlordStatementVerification
         buildingName={selectedBuilding.name}
-        onBackPress={() => setCurrentSubDashboard("base")} // Routes gracefully back to core navigation dashboard
+        onBackPress={() => navigateToSubDashboard("base")} // Routes gracefully back to core navigation dashboard
       />
     );
   }
@@ -320,7 +229,7 @@ export function LandlordHome() {
     return (
       <LandlordBulkSms
         buildingName={selectedBuilding.name} // 💡 Passes down the dynamic building title string text
-        onBackPress={() => setCurrentSubDashboard("base")} // Clears sub-state to reveal the main screen grid layout
+        onBackPress={() => navigateToSubDashboard("base")} // Clears sub-state to reveal the main screen grid layout
         onViewDetailsPress={(item) => {
           // 💡 3. Safely update parent state blocks here!
           setFocusedSmsRow({
@@ -328,10 +237,10 @@ export function LandlordHome() {
             bodyText: item.expandedText,
             isEnabled: item.isEnabled,
           });
-          setCurrentSubDashboard("sms_details");
+          navigateToSubDashboard("sms_details");
         }}
-        onPurchaseTokensPress={() => setCurrentSubDashboard("purchase_tokens")}
-        onSearchTenantPress={() => setCurrentSubDashboard("search_tenant")}
+        onPurchaseTokensPress={() => navigateToSubDashboard("purchase_tokens")}
+        onSearchTenantPress={() => navigateToSubDashboard("search_tenant")}
       />
     );
   }
@@ -340,7 +249,7 @@ export function LandlordHome() {
     return (
       <LandlordSmsDetails
         smsDetailData={focusedSmsRow} // 💡 Binds dynamic card choices values seamlessly
-        onBackPress={() => setCurrentSubDashboard("bulk_sms")} // Safely cascades back out into bulk sms dashboard matrix view on click
+        onBackPress={() => navigateToSubDashboard("bulk_sms")} // Safely cascades back out into bulk sms dashboard matrix view on click
       />
     );
   }
@@ -348,7 +257,7 @@ export function LandlordHome() {
   if (currentSubDashboard === "purchase_tokens") {
     return (
       <LandlordPurchaseTokensScreen
-        onBackPress={() => setCurrentSubDashboard("bulk_sms")} // Routes user safely back into parent bulk message workspace tree panel context
+        onBackPress={() => navigateToSubDashboard("bulk_sms")} // Routes user safely back into parent bulk message workspace tree panel context
       />
     );
   }
@@ -356,14 +265,14 @@ export function LandlordHome() {
   if (currentSubDashboard === "search_tenant") {
     return (
       <LandlordSearchTenantScreen
-        onBackPress={() => setCurrentSubDashboard("bulk_sms")} // Closes screen back to SMS composer layout
+        onBackPress={() => navigateToSubDashboard("bulk_sms")} // Closes screen back to SMS composer layout
         onSelectDone={(count, ids) => {
           console.log(
             `Selected ${count} tenant recipients. Saved tracking array:`,
             ids,
           );
           // 💡 Hook your local state variables to pass total counts straight back into your modal counters line
-          setCurrentSubDashboard("bulk_sms");
+          navigateToSubDashboard("bulk_sms");
         }}
       />
     );
@@ -376,7 +285,7 @@ export function LandlordHome() {
           buildingName={selectedBuilding.name}
           onBackPress={navigateBack}
           onViewUnitPerformancePress={() =>
-            setCurrentSubDashboard("unit_performance")
+            navigateToSubDashboard("unit_performance")
           }
           onBuildingFieldPress={() => setIsModalVisible(true)}
         />

@@ -53,7 +53,7 @@ export function LandlordGrantPermissionView({
   return (
     <SafeAreaView style={styles.container}>
       {/* ================= 1. UPPER APPBAR ROW NAVIGATION ================= */}
-      <View style={styles.appBar}>
+      {/* <View style={styles.appBar}>
         <View style={styles.appBarLeft}>
           <TouchableOpacity
             onPress={() => setIsDrawerOpen(true)}
@@ -71,7 +71,7 @@ export function LandlordGrantPermissionView({
             <Text style={styles.avatarText}>L</Text>
           </View>
         </View>
-      </View>
+      </View> */}
 
       {/* ================= 2. CORE FORM CARD CONTENT PANEL ================= */}
       <ScrollView

@@ -8,9 +8,12 @@ import { LandlordHome } from "../../components/roles/landlord/home";
 import { SalesHome } from "../../components/roles/sales/home";
 // import { TenantHome } from "../../components/roles/tenant/home";
 
+import NotificationScreen from "@/components/global/notification";
+import { useGlobalNavigation } from "@/context/NavigationContext";
+
 export default function GenericHomeScreen() {
   const { currentRole } = useAppSelector((state) => state.role);
-
+  const { currentSubDashboard } = useGlobalNavigation();
   // 💡 Define your strict functional view registry map (Omitting guest since they are firewall-blocked)
   const homeRegistry: RoleScreenRegistry = {
     tenant: (
@@ -27,6 +30,10 @@ export default function GenericHomeScreen() {
     return (
       <ErrorComponent message="Guests are not permitted within this dashboard view." />
     );
+  }
+
+  if (currentSubDashboard === "notification") {
+    return <NotificationScreen />;
   }
 
   return homeRegistry[currentRole];

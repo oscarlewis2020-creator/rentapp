@@ -154,7 +154,7 @@ export function LandlordInventory({
   return (
     <SafeAreaView style={styles.container}>
       {/* ================= 1. UPPER NAVIGATION APPBAR ================= */}
-      <View style={styles.appBar}>
+      {/* <View style={styles.appBar}>
         <View style={styles.appBarLeft}>
           <TouchableOpacity
             onPress={() => setIsDrawerOpen(true)}
@@ -173,7 +173,7 @@ export function LandlordInventory({
             <View style={styles.onlineStatusDot} />
           </View>
         </View>
-      </View>
+      </View> */}
 
       {/* ================= 2. MASTER SUMMARY ACCOUNTING TRACK ROW ================= */}
       <View style={styles.summaryBarRow}>

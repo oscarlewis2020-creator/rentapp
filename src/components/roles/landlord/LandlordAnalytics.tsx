@@ -66,7 +66,7 @@ export function LandlordAnalytics({
   return (
     <SafeAreaView style={styles.outerContainer}>
       <View style={styles.responsiveWrapper}>
-        {/* Top App Bar Header */}
+        {/* Top App Bar Header
         <View style={styles.appBar}>
           <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
             <Ionicons name="menu" size={24} color="#fff" />
@@ -83,7 +83,7 @@ export function LandlordAnalytics({
               <Text style={styles.avatarText}>L</Text>
             </View>
           </View>
-        </View>
+        </View> */}
 
         <ScrollView
           style={styles.mainScrollView}

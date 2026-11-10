@@ -1,4 +1,5 @@
 // app/_layout.tsx
+import { NavigationProvider } from "@/context/NavigationContext";
 import { Stack, usePathname, useRouter } from "expo-router"; // 💡 Add usePathname to prevent layout loops
 import { createContext, useContext, useEffect, useState } from "react";
 import { PaperProvider } from "react-native-paper";
@@ -110,6 +111,7 @@ function RootLayoutContent() {
         <Stack.Screen name="(auth)/signin" />
         <Stack.Screen name="(auth)/init-screen" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="notification" />
       </Stack>
     </RoleContext.Provider>
   );
@@ -119,7 +121,9 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <PaperProvider>
-        <RootLayoutContent />
+        <NavigationProvider>
+          <RootLayoutContent />
+        </NavigationProvider>
       </PaperProvider>
     </Provider>
   );

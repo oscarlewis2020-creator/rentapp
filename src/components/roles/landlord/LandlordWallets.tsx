@@ -38,7 +38,7 @@ export function LandlordWallets({
   return (
     <SafeAreaView style={styles.container}>
       {/* ================= 1. UPPER APPBAR NAVIGATION ROW ================= */}
-      <View style={styles.appBar}>
+      {/* <View style={styles.appBar}>
         <View style={styles.appBarLeft}>
           <TouchableOpacity
             onPress={() => setIsDrawerOpen(true)}
@@ -57,7 +57,7 @@ export function LandlordWallets({
             <Text style={styles.avatarText}>L</Text>
           </View>
         </View>
-      </View>
+      </View> */}
       {/* ================= 2. CORE WORKSPACE SCROLL CONTENT ================= */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}

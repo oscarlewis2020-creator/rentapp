@@ -66,7 +66,7 @@ export function EditBuildingScreen({
   return (
     <SafeAreaView style={styles.container}>
       {/* ================= UPPER APPBAR HEADER ROW ================= */}
-      <View style={styles.appBar}>
+      {/* <View style={styles.appBar}>
         <View style={styles.appBarLeft}>
           <TouchableOpacity
             onPress={() => setIsDrawerOpen(true)}
@@ -85,7 +85,7 @@ export function EditBuildingScreen({
             <View style={styles.onlineStatusDot} />
           </View>
         </View>
-      </View>
+      </View> */}
 
       {/* ================= FORM CONTROLLER LAYER ================= */}
       <ScrollView

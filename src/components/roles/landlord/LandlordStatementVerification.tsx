@@ -25,8 +25,8 @@ export function LandlordStatementVerification({
       {/* Responsive Layout Framework Container (Max 600px on Web viewports) */}
       <View style={styles.responsiveWrapper}>
         {/* Top App Header Navigation Bar */}
-        <View style={styles.appBar}>
-          <View style={styles.leftHeader}>
+        {/* <View style={styles.appBar}> */}
+        {/* <View style={styles.leftHeader}>
             <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
               <Ionicons name="menu" size={24} color="#fff" />
             </TouchableOpacity>
@@ -41,7 +41,7 @@ export function LandlordStatementVerification({
               <View style={styles.onlineDot} />
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* High-Fidelity Main Centered Empty State Container */}
         <View style={styles.emptyStateContainer}>

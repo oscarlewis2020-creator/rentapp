@@ -118,6 +118,7 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.isAuthenticated = true;
         state.isInitWorkflowComplete = false; // Force checking initialization prompts post-login
+        state.isInitializing = false;
       })
 
       // Handle Logout

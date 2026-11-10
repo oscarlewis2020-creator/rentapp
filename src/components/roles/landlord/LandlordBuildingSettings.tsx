@@ -69,7 +69,7 @@ export function LandlordBuildingSettings({
   return (
     <SafeAreaView style={styles.outerContainer}>
       <View style={styles.responsiveWrapper}>
-        <View style={styles.appBar}>
+        {/* <View style={styles.appBar}>
           <View style={styles.leftHeader}>
             <TouchableOpacity
               style={styles.iconButton}
@@ -90,7 +90,7 @@ export function LandlordBuildingSettings({
               <View style={styles.onlineDot} />
             </View>
           </View>
-        </View>
+        </View> */}
 
         <ScrollView
           style={styles.scrollView}

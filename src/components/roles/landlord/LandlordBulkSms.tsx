@@ -85,7 +85,7 @@ export function LandlordBulkSms({
     <SafeAreaView style={styles.outerContainer}>
       <View style={styles.responsiveWrapper} pointerEvents="box-none">
         {/* Top Header */}
-        <View style={styles.appBar}>
+        {/* <View style={styles.appBar}>
           <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
             <Ionicons name="menu" size={24} color="#fff" />
           </TouchableOpacity>
@@ -101,7 +101,7 @@ export function LandlordBulkSms({
               <Text style={styles.avatarText}>L</Text>
             </View>
           </View>
-        </View>
+        </View> */}
 
         <ScrollView
           style={{ flex: 1 }}

@@ -44,7 +44,7 @@ export function LandlordSmsDetails({
     <SafeAreaView style={styles.outerContainer}>
       <View style={styles.responsiveWrapper}>
         {/* Top App Header Navigation Bar */}
-        <View style={styles.appBar}>
+        {/* <View style={styles.appBar}>
           <View style={styles.leftHeader}>
             <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
               <Ionicons name="menu" size={24} color="#fff" />
@@ -60,7 +60,7 @@ export function LandlordSmsDetails({
               <View style={styles.onlineDot} />
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* Scrollable Dashboard Body Layout Container */}
         <ScrollView
