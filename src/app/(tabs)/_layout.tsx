@@ -68,6 +68,10 @@ export default function TabsLayout() {
     switch (currentSubDashboard) {
       case "notification":
         return "Notification";
+      case "add_unit":
+        return "Add Unit";
+      case "add_building":
+        return "Add Building";
       case "permissions":
         return "Permissions";
       case "wallets":

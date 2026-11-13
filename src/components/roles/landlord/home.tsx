@@ -14,10 +14,18 @@ import { ControlActionBar } from "../../ui/landlord/units/ControlActionBar";
 import { SegmentTabs, TabOption } from "../../ui/landlord/units/SegmentTabs";
 import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 
+import LandlordFabOverlay from "@/components/ui/landlord/units/LandlordFabOverlay";
+import UnitsFilterModal from "@/components/ui/landlord/units/UnitsFilterModal";
+import UnitsSortModal, {
+  SortOrderType,
+} from "@/components/ui/landlord/units/UnitsSortModal";
+import type { BuildingFormValues } from "./LandlordBuildingFormScreen";
+
 // 💡 Sub-view Screen Imports
 import { useGlobalNavigation } from "@/context/NavigationContext";
 import { LandlordActionView } from "../../ui/landlord/action/ActionView";
 import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
+import { LandlordAddBuildingScreen } from "./LandlordAddBuildingScreen";
 import { LandlordAnalytics } from "./LandlordAnalytics";
 import { LandlordBuildingDetails } from "./LandlordBuildingDetails";
 import { LandlordBuildingSettings } from "./LandlordBuildingSettings";
@@ -32,10 +40,46 @@ import { LandlordStatementVerification } from "./LandlordStatementVerification";
 import { LandlordUnitPerformanceScreen } from "./LandlordUnitPerfomanceScreen";
 import { LandlordWalletDetails } from "./LandlordWalletDetails";
 import { LandlordWallets } from "./LandlordWallets";
+import { LandlordAddUnitScreen } from "./LandlordAddUnitScreen";
 
-const MOCK_BUILDINGS: BuildingItem[] = [
-  { id: "b1", name: "Test 1" },
-  { id: "b2", name: "Demo Building" },
+// const MOCK_BUILDINGS: BuildingItem[] = [
+//   { id: "b1", name: "Test 1" },
+//   { id: "b2", name: "Demo Building" },
+// ];
+
+type MockBuilding = BuildingItem & BuildingFormValues;
+
+const MOCK_BUILDINGS: MockBuilding[] = [
+  {
+    id: "b1",
+    name: "Test 1",
+    buildingName: "Test 1",
+    buildingType: "residential",
+    email: "test1@example.com",
+    phoneNumber: "796758021",
+    address: "Moi University, Eldoret, Kenya",
+    localArea: "Kesses",
+    referralCode: "TEST001",
+    currency: "KES, Kenya",
+    selectedAmenities: ["High-speed internet access"],
+    mandatoryPhotoId: false,
+    imageUris: [],
+  },
+  {
+    id: "b2",
+    name: "Demo Building",
+    buildingName: "Demo Building",
+    buildingType: "commercial",
+    email: "demo@example.com",
+    phoneNumber: "712345678",
+    address: "Eldoret, Kenya",
+    localArea: "Town Centre",
+    referralCode: "DEMO002",
+    currency: "KES, Kenya",
+    selectedAmenities: ["Parking", "CCTV surveillance"],
+    mandatoryPhotoId: true,
+    imageUris: [],
+  },
 ];
 
 const MOCK_UNITS: UnitItem[] = [
@@ -66,7 +110,9 @@ const MOCK_UNITS: UnitItem[] = [
 ];
 
 export function LandlordHome() {
-  const [selectedBuilding, setSelectedBuilding] = useState<BuildingItem>(
+  const [buildings, setBuildings] = useState<MockBuilding[]>(MOCK_BUILDINGS);
+
+  const [selectedBuilding, setSelectedBuilding] = useState<MockBuilding>(
     MOCK_BUILDINGS[0],
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -76,6 +122,42 @@ export function LandlordHome() {
     bodyText: "",
     isEnabled: false,
   });
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isFabOpen, setIsFabOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrderType>("asc");
+
+  const handleSelectBuilding = (building: BuildingItem) => {
+    const fullBuilding = buildings.find((item) => item.id === building.id);
+
+    if (fullBuilding) {
+      setSelectedBuilding(fullBuilding);
+    }
+
+    setIsModalVisible(false);
+  };
+
+  const handleUpdateBuilding = async (
+    buildingId: string,
+    values: BuildingFormValues,
+  ) => {
+    const updatedBuilding: MockBuilding = {
+      id: buildingId,
+      name: values.buildingName,
+      ...values,
+    };
+
+    setBuildings((currentBuildings) =>
+      currentBuildings.map((building) =>
+        building.id === buildingId ? updatedBuilding : building,
+      ),
+    );
+
+    setSelectedBuilding(updatedBuilding);
+
+    console.log("Mock building updated:", updatedBuilding);
+  };
 
   // Dynamic tab configuration structures
   const tabOptions: TabOption[] = [
@@ -192,6 +274,8 @@ export function LandlordHome() {
   if (currentSubDashboard === "building_details") {
     return (
       <LandlordBuildingDetails
+        building={selectedBuilding}
+        onUpdateBuilding={handleUpdateBuilding}
         onFilterPress={() => console.log("Open leases filtering overlay sheet")}
         onSortPress={() => console.log("Open leases sorting matrix logs")}
       />
@@ -296,10 +380,7 @@ export function LandlordHome() {
           buildings={MOCK_BUILDINGS} // 💡 Fixed: Pass your complete properties array pool
           selectedBuildingId={selectedBuilding.id} // 💡 Fixed: Pass your active property ID string handle
           onClose={() => setIsModalVisible(false)}
-          onSelectBuilding={(building: BuildingItem) => {
-            setSelectedBuilding(building);
-            setIsModalVisible(false);
-          }}
+          onSelectBuilding={handleSelectBuilding}
         />
       </View>
     );
@@ -310,6 +391,32 @@ export function LandlordHome() {
       <LandlordUnitPerformanceScreen
         buildingName={selectedBuilding.name}
         onBackPress={navigateBack} // Shifting routes back smoothly into parent analytics workspace tree panel
+      />
+    );
+  }
+
+  if (currentSubDashboard === "add_building") {
+    return (
+      <LandlordAddBuildingScreen
+        onBackPress={() => navigateToSubDashboard("base")}
+        onCreateBuilding={async (values) => {
+          // Connect Supabase INSERT here.
+          console.log("Create building:", values);
+        }}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "add_unit") {
+    return (
+      <LandlordAddUnitScreen
+        buildingName={selectedBuilding.name}
+        onBack={() => navigateToSubDashboard("base")}
+        onSubmitUnit={(unitData) => {
+          console.log("Unit submitted successfully:", unitData);
+          // TODO: Save unit to your backend / state array here
+          navigateToSubDashboard("base"); // Return to main dashboard after saving
+        }}
       />
     );
   }
@@ -350,9 +457,9 @@ export function LandlordHome() {
           />
           {/* Keep filters floating bar active only when managing units list */}
           <ControlActionBar
-            onFilterPress={() => console.log("Open filter controls panel")}
-            onSortPress={() => console.log("Trigger sorting mechanism")}
-            onAddPress={() => console.log("Open Add Property modal view popup")}
+            onFilterPress={() => setIsFilterOpen(true)}
+            onSortPress={() => setIsSortOpen(true)}
+            onAddPress={() => setIsFabOpen(true)}
           />
         </View>
       ) : activeTab === "extra" ? (
@@ -369,9 +476,38 @@ export function LandlordHome() {
       <BuildingPickerModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
-        buildings={MOCK_BUILDINGS}
+        buildings={buildings}
         selectedBuildingId={selectedBuilding.id}
-        onSelectBuilding={(building) => setSelectedBuilding(building)}
+        onSelectBuilding={handleSelectBuilding}
+      />
+
+      <UnitsFilterModal
+        isVisible={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApplyFilters={(filters) => console.log("Applied filters:", filters)}
+      />
+
+      <UnitsSortModal
+        isVisible={isSortOpen}
+        selectedSort={sortOrder}
+        onSelectSort={(order) => setSortOrder(order)}
+        onClose={() => setIsSortOpen(false)}
+      />
+
+      <LandlordFabOverlay
+        isOpen={isFabOpen}
+        onClose={() => setIsFabOpen(false)}
+        onAddBuildingPress={() => {
+          setIsFabOpen(false);
+          navigateToSubDashboard("add_building");
+        }}
+        onAddUnitPress={() => {
+          setIsFabOpen(false); // Close the FAB overlay menu
+          navigateToSubDashboard("add_unit"); // 💡 ROUTE DIRECTLY TO ADD UNIT SCREEN
+        }}
+        onApplyForLeasePress={() =>
+          console.log("Navigate or open Apply For Lease")
+        }
       />
     </SafeAreaView>
   );

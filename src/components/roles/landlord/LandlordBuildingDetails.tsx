@@ -13,11 +13,42 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserRole } from "../../../app/_layout";
 
 // 💡 IMPORT THE NEWLY CREATED EDIT SCREEN VIEW
+import type { BuildingFormValues } from "./LandlordBuildingFormScreen";
 import { EditBuildingScreen } from "./LandlordEditBuildingScreen";
 
 type ActiveTabType = "leases" | "info" | "ratings";
 
+// interface BuildingDetailsProps {
+//   onFilterPress?: () => void;
+//   onSortPress?: () => void;
+//   onSharePress?: () => void;
+//   onUploadPress?: () => void;
+//   onDeletePress?: () => void;
+// }
+
+export interface BuildingDetailsRecord {
+  id: string;
+  name: string;
+  buildingName: string;
+  buildingType: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  localArea: string;
+  referralCode: string;
+  currency: string;
+  selectedAmenities: string[];
+  mandatoryPhotoId: boolean;
+  imageUris: string[];
+}
+
 interface BuildingDetailsProps {
+  building: BuildingDetailsRecord;
+  onUpdateBuilding: (
+    buildingId: string,
+    values: BuildingFormValues,
+  ) => void | Promise<void>;
+  isSubmitting?: boolean;
   onFilterPress?: () => void;
   onSortPress?: () => void;
   onSharePress?: () => void;
@@ -56,6 +87,9 @@ function InfoRowItem({
 }
 
 export function LandlordBuildingDetails({
+  building,
+  onUpdateBuilding,
+  isSubmitting = false,
   onFilterPress,
   onSortPress,
   onSharePress,
@@ -72,35 +106,29 @@ export function LandlordBuildingDetails({
   if (detailsSubRoute === "edit_form") {
     return (
       <EditBuildingScreen
-        onBackPress={() => setDetailsSubRoute("base_details")} // Returns safely back to detail tabs
+        buildingId={building.id}
+        initialValues={{
+          buildingName: building.buildingName,
+          buildingType: building.buildingType,
+          email: building.email,
+          phoneNumber: building.phoneNumber,
+          address: building.address,
+          localArea: building.localArea,
+          referralCode: building.referralCode,
+          currency: building.currency,
+          selectedAmenities: building.selectedAmenities,
+          mandatoryPhotoId: building.mandatoryPhotoId,
+          imageUris: building.imageUris,
+        }}
+        onBackPress={() => setDetailsSubRoute("base_details")}
+        onUpdateBuilding={onUpdateBuilding}
+        isSubmitting={isSubmitting}
       />
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ================= 1. UPPER APPBAR HEADER ROW ================= */}
-      {/* <View style={styles.appBar}>
-        <View style={styles.appBarLeft}>
-          <TouchableOpacity
-            onPress={() => setIsDrawerOpen(true)}
-            style={styles.menuButton}
-          >
-            <Ionicons name="menu" size={28} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.appBarTitle}>Test 1 Details</Text>
-        </View>
-        <View style={styles.appBarRight}>
-          <TouchableOpacity style={styles.appBarIconButton}>
-            <Ionicons name="notifications" size={24} color="#FFF" />
-          </TouchableOpacity>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>L</Text>
-            <View style={styles.onlineStatusDot} />
-          </View>
-        </View>
-      </View> */}
-
       {/* ================= 2. CORE WORKSPACE CONTENT STREAM ================= */}
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -221,23 +249,34 @@ export function LandlordBuildingDetails({
               <View style={styles.infoSectionCard}>
                 <InfoRowItem
                   icon={<Ionicons name="business" size={18} color="#85C1E9" />}
+                  label="Building name"
+                  value={building.buildingName || "Not provided"}
+                />
+                <InfoRowItem
+                  icon={<Ionicons name="business" size={18} color="#85C1E9" />}
                   label="Type"
-                  value="residential"
+                  value={building.buildingType || "Not specified"}
                 />
                 <InfoRowItem
                   icon={<Ionicons name="location" size={18} color="#85C1E9" />}
                   label="Address"
-                  value="Eldoret, Kenya"
+                  value={building.address || "Not provided"}
                 />
                 <InfoRowItem
                   icon={<Ionicons name="call" size={18} color="#85C1E9" />}
                   label="Phone"
-                  value="+254 796 758 021"
+                  value={
+                    building.phoneNumber
+                      ? building.phoneNumber.startsWith("+")
+                        ? building.phoneNumber
+                        : `+254 ${building.phoneNumber}`
+                      : "Not provided"
+                  }
                 />
                 <InfoRowItem
                   icon={<Ionicons name="mail" size={18} color="#85C1E9" />}
                   label="Service email"
-                  value="oscarlewis2020@gmail.com"
+                  value={building.email || "Not provided"}
                 />
                 <InfoRowItem
                   icon={<Ionicons name="ribbon" size={18} color="#85C1E9" />}
@@ -259,19 +298,30 @@ export function LandlordBuildingDetails({
 
               {/* Part 2: Horizontal Features Amenities Pill List Section */}
               <Text style={styles.subsectionTitle}>Building Amenities</Text>
+
               <View style={styles.infoSectionCard}>
                 <View style={styles.amenitiesWrapLayout}>
-                  <View style={styles.amenityPill}>
-                    <Ionicons
-                      name="wifi"
-                      size={16}
-                      color="#85C1E9"
-                      style={styles.pillIcon}
-                    />
-                    <Text style={styles.amenityPillText}>
-                      High-speed internet access
+                  {building.selectedAmenities.length > 0 ? (
+                    building.selectedAmenities.map((amenity, index) => (
+                      <View
+                        key={`${amenity}-${index}`}
+                        style={styles.amenityPill}
+                      >
+                        <Ionicons
+                          name="checkmark-circle-outline"
+                          size={16}
+                          color="#85C1E9"
+                          style={styles.pillIcon}
+                        />
+
+                        <Text style={styles.amenityPillText}>{amenity}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyPlaceholderText}>
+                      No amenities added yet.
                     </Text>
-                  </View>
+                  )}
                 </View>
               </View>
             </View>

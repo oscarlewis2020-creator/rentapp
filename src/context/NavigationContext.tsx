@@ -24,7 +24,9 @@ export type DashboardState =
   | "search_tenant"
   | "analytics"
   | "unit_performance"
-  | "notification";
+  | "notification"
+  | "add_building"
+  | "add_unit";
 
 interface NavigationContextType {
   currentSubDashboard: DashboardState;
