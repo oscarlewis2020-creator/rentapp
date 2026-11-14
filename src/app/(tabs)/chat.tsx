@@ -7,6 +7,7 @@ import { UserRole } from "../../types/navigation";
 
 // Component Imports
 import { LandlordChat } from "../../components/roles/landlord/chat";
+import TenantChat from "../../components/roles/tenant/chat"; // 👈 Imported your Tenant Chat component
 import { LandlordNewChatContacts } from "../../components/ui/landlord/chat/LandlordNewChatContacts";
 
 // 💡 1. The local integrated helper handles the screen switching via internal hooks
@@ -46,11 +47,7 @@ export default function GenericChatScreen() {
 
   // Strictly maps your types/navigation.ts registry contract requirements
   const chatRegistry: Record<UserRole, React.ReactElement> = {
-    tenant: (
-      <View style={styles.center}>
-        <Text>Tenant Chat Coming Soon</Text>
-      </View>
-    ), // Placeholder
+    tenant: <TenantChat />, // 👈 Fully connected to your tenant chat component!
     landlord: <LandlordChatWorkspace />, // Connected workspace layout engine!
     sales: <SalesChatPlaceholder />,
   };

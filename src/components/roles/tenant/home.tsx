@@ -3,42 +3,93 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
-// Import your sub-components
-import LeasesList from "./LeasesList";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import LeasesList, { LeaseItem } from "./LeasesList";
 import PaymentsList from "./PaymentsList";
+
+const INITIAL_LEASES: LeaseItem[] = [
+  {
+    id: "1",
+    building: "Test 1",
+    unit: "Room 3",
+    status: "Requested",
+    startDate: "Jul-09-2026",
+    endDate: "Jul-08-2027",
+  },
+  {
+    id: "2",
+    building: "Las Vegas",
+    unit: "A",
+    status: "Past Due",
+    startDate: "Jul-09-2026",
+    endDate: "Jul-08-2027",
+  },
+  {
+    id: "3",
+    building: "Jandj",
+    unit: "Jj 1",
+    status: "Past Due",
+    startDate: "Jul-15-2026",
+    endDate: "Aug-15-2026",
+  },
+  {
+    id: "4",
+    building: "Jandj",
+    unit: "Jj 1",
+    status: "Canceled",
+    startDate: "Jul-09-2026",
+    endDate: "Jul-30-2027",
+  },
+];
 
 export default function TenantHome() {
   const [activeTab, setActiveTab] = useState<"leases" | "payments">("leases");
-
-  const handleOpenSearch = () => {
-    router.push("/search");
-  };
+  const [leases, setLeases] = useState<LeaseItem[]>(INITIAL_LEASES);
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header Bar */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.menuButton}>
+          <Ionicons name="menu-outline" size={24} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Tenant Home</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="notifications-outline" size={22} color="#ffffff" />
+          </TouchableOpacity>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>B</Text>
+          </View>
+        </View>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. Search Bar Card Trigger */}
+        {/* Search Header Banner */}
         <TouchableOpacity
-          style={styles.searchCard}
-          onPress={handleOpenSearch}
+          style={styles.searchBanner}
           activeOpacity={0.8}
+          onPress={() => router.push("/explore-units" as any)}
         >
-          <View style={styles.searchIconCircle}>
-            <Ionicons name="home-outline" size={24} color="#38bdf8" />
+          <View style={styles.searchIconContainer}>
+            <Ionicons name="home-outline" size={20} color="#38bdf8" />
           </View>
-          <Text style={styles.searchText}>Search for properties</Text>
+          <Text style={styles.searchBannerText}>Search for properties</Text>
         </TouchableOpacity>
 
-        {/* 2. Leases / Payments Switcher Bar */}
+        {/* Segmented Tab Switcher (Leases / Payments) */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[
@@ -46,6 +97,7 @@ export default function TenantHome() {
               activeTab === "leases" && styles.activeTabButton,
             ]}
             onPress={() => setActiveTab("leases")}
+            activeOpacity={0.7}
           >
             <Text
               style={[
@@ -56,13 +108,13 @@ export default function TenantHome() {
               Leases
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[
               styles.tabButton,
               activeTab === "payments" && styles.activeTabButton,
             ]}
             onPress={() => setActiveTab("payments")}
+            activeOpacity={0.7}
           >
             <Text
               style={[
@@ -75,12 +127,16 @@ export default function TenantHome() {
           </TouchableOpacity>
         </View>
 
-        {/* 3. Render Active Tab Component */}
-        {activeTab === "leases" ? <LeasesList /> : <PaymentsList />}
+        {/* Tab Content Display */}
+        {activeTab === "leases" ? (
+          <LeasesList leases={leases} onUpdateLeases={setLeases} />
+        ) : (
+          <PaymentsList />
+        )}
       </ScrollView>
 
-      {/* 4. Floating Action Bar (Filter / Sort) */}
-      <View style={styles.floatingActionBar}>
+      {/* Floating Action Bar (Filter / Sort) */}
+      <View style={[styles.floatingActionBar, { bottom: insets.bottom + 16 }]}>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="options-outline" size={18} color="#94a3b8" />
           <Text style={styles.actionText}>Filter</Text>
@@ -98,43 +154,79 @@ export default function TenantHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#111827", // Dark theme background matching Photo 2
+    backgroundColor: "#111827",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1f2937",
+  },
+  menuButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconButton: {
+    marginRight: 12,
+    padding: 4,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#38bdf8",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    color: "#0f172a",
+    fontWeight: "700",
+    fontSize: 14,
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 90,
   },
-  searchCard: {
+  searchBanner: {
     backgroundColor: "#1f2937",
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "#374151",
   },
-  searchIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: "#38bdf8",
+  searchIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#111827",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  searchText: {
+  searchBannerText: {
     color: "#38bdf8",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
   },
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "#1f2937",
-    borderRadius: 10,
-    padding: 4,
+    borderRadius: 8,
+    padding: 3,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "#374151",
@@ -143,14 +235,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 6,
   },
   activeTabButton: {
     backgroundColor: "#374151",
   },
   tabText: {
     color: "#9ca3af",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
   },
   activeTabText: {
@@ -158,35 +250,36 @@ const styles = StyleSheet.create({
   },
   floatingActionBar: {
     position: "absolute",
-    bottom: 20,
-    alignSelf: "center",
-    flexDirection: "row",
+    left: 20,
+    right: 20,
     backgroundColor: "#1f2937",
-    borderRadius: 25,
-    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: "#374151",
     elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 6,
   },
   actionButton: {
+    flex: 1,
     flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
-    gap: 6,
   },
   actionText: {
     color: "#94a3b8",
+    marginLeft: 6,
+    fontWeight: "600",
     fontSize: 14,
-    fontWeight: "500",
   },
   actionDivider: {
     width: 1,
-    height: "100%",
+    height: 20,
     backgroundColor: "#374151",
-    marginHorizontal: 16,
   },
 });
