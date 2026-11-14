@@ -1,15 +1,26 @@
 // app/(tabs)/settings.tsx
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as LocalAuthentication from "expo-local-authentication";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Switch } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 // Central Hooks and Actions
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { logOutUser } from "../../store/authSlice";
 
 // Shared Reusable UI Components
+import BiometricsSettings from "../../components/ui/settings/BiometricsSettings";
 import { ConfirmSignOutModal } from "../../components/ui/settings/ConfirmSignoutModal";
 import { ProfileHeader } from "../../components/ui/settings/ProfileHeader";
 import { SettingsItem } from "../../components/ui/settings/SettingsItem";
@@ -24,6 +35,55 @@ export default function GenericSettingsScreen() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isBiometricSecure, setIsBiometricSecure] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [showBiometrics, setShowBiometrics] = useState(false);
+  const [biometricTimeout, setBiometricTimeout] = useState<number | null>(null);
+
+  // Making the biometrics stored value the single source of truth
+  useEffect(() => {
+    if (Platform.OS === "web") return; // Web does not support SecureStore
+    (async () => {
+      try {
+        const enabled = await SecureStore.getItemAsync("biometrics_enabled");
+        const timeout = await SecureStore.getItemAsync("biometrics_timeout");
+        setIsBiometricSecure(enabled === "true");
+        setBiometricTimeout(timeout ? Number(timeout) : null);
+      } catch (e) {
+        console.log("Error loading biometrics setting:", e);
+      }
+    })();
+  }, []);
+
+  //switch off handler for biometrics
+  const handleBiometricToggle = async (next: boolean) => {
+    if (next) {
+      setShowBiometrics(true);
+      return;
+    }
+
+    // Turning off: require authentication first
+    try {
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+
+      // If the user removed all biometrics/passcode from the device,
+      // they could never pass the prompt, so let them disable it
+      if (enrolled) {
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: "Confirm to disable RentHub biometrics",
+          cancelLabel: "Cancel",
+        });
+        if (!result.success) return; // switch stays on
+      }
+
+      await SecureStore.deleteItemAsync("biometrics_enabled");
+      await SecureStore.deleteItemAsync("biometrics_timeout");
+      setIsBiometricSecure(false);
+      setBiometricTimeout(null);
+    } catch (error) {
+      console.log("Error disabling biometrics:", error);
+      Alert.alert("Error", "Unable to disable biometric authentication.");
+    }
+  };
+
   // Capitalize active role text for display purposes
   const formattedRole =
     currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
@@ -31,6 +91,14 @@ export default function GenericSettingsScreen() {
   // Execution call when the user clicks 'Proceed' inside our layout alert window box
   const handleFinalSignOut = async () => {
     setSignOutModalVisible(false);
+
+    // Clear biometric lock settings so the next person on this device starts fresh
+    try {
+      await SecureStore.deleteItemAsync("biometrics_enabled");
+      await SecureStore.deleteItemAsync("biometrics_timeout");
+    } catch (error) {
+      console.log("Error clearing biometric settings:", error);
+    }
 
     // 1. Wipe credentials token values across store and local storage layers
     await dispatch(logOutUser());
@@ -44,9 +112,9 @@ export default function GenericSettingsScreen() {
       {/* 💡 FIXED TOP LAYER: Profile Header stays anchored here outside the ScrollView */}
       <View style={styles.stickyHeaderContainer}>
         <ProfileHeader
-          name="Lewis Matano"
-          phone="+254 796 758 021"
-          email="oscarlewis2020@gmail.com"
+          name="Stanley Brandon"
+          phone="+254 715 176 103"
+          email="stanleybrandon606@gmail.com"
         />
       </View>
       <ScrollView
@@ -90,19 +158,27 @@ export default function GenericSettingsScreen() {
               />
             }
           />
+
           <SettingsItem
             icon={
               <Ionicons name="lock-closed-outline" size={20} color="#85C1E9" />
             }
             label="Secure with biometric"
+            sublabel={
+              isBiometricSecure && biometricTimeout
+                ? `Auto-lock after ${biometricTimeout} seconds`
+                : undefined
+            }
+            onPress={() => setShowBiometrics(true)}
             rightElement={
               <Switch
                 value={isBiometricSecure}
-                onValueChange={setIsBiometricSecure}
+                onValueChange={handleBiometricToggle}
                 color="#00A884"
               />
             }
           />
+
           <SettingsItem
             icon={
               <Ionicons
@@ -214,6 +290,16 @@ export default function GenericSettingsScreen() {
           console.log("Run immediate preemptive chat sync sequence...")
         }
         onProceed={handleFinalSignOut}
+      />
+
+      <BiometricsSettings
+        visible={showBiometrics}
+        isEnabled={isBiometricSecure}
+        onEnabled={(timeout) => {
+          setIsBiometricSecure(true);
+          setBiometricTimeout(timeout);
+        }}
+        onClose={() => setShowBiometrics(false)}
       />
     </SafeAreaView>
   );

@@ -2,12 +2,17 @@
 import { NavigationProvider } from "@/context/NavigationContext";
 import { Stack, usePathname, useRouter } from "expo-router"; // 💡 Add usePathname to prevent layout loops
 import { createContext, useContext, useEffect, useState } from "react";
+import { View } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { Provider } from "react-redux";
 import { useAppDispatch, useAppSelector } from "../hooks";
 import { setRole, store } from "../store";
 import { bootstrapAuthSession } from "../store/authSlice";
 import { RoleContextType, UserRole } from "../types/navigation";
+
+// import LockScreen from "../components/ui/lock/LockScreen";
+import LockScreen from "../components/ui/settings/LockScreen";
+import { useBiometricLock } from "../components/ui/settings/useBiometricLock";
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
@@ -95,6 +100,11 @@ function RootLayoutContent() {
     router,
   ]);
 
+  const { locked, unlock } = useBiometricLock({
+    ready: !isInitializing,
+    active: isAuthenticated,
+  });
+
   if (isInitializing) return null;
 
   const roleContextValue: RoleContextType = {
@@ -106,13 +116,15 @@ function RootLayoutContent() {
 
   return (
     <RoleContext.Provider value={roleContextValue}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(public)" />
-        <Stack.Screen name="(auth)/signin" />
-        <Stack.Screen name="(auth)/init-screen" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="notification" />
-      </Stack>
+      <View style={{ flex: 1, backgroundColor: "#121824" }}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(public)" />
+          <Stack.Screen name="(auth)/signin" />
+          <Stack.Screen name="(auth)/init-screen" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+        {locked && <LockScreen onUnlock={unlock} />}
+      </View>
     </RoleContext.Provider>
   );
 }

@@ -1,5 +1,5 @@
 // app/(tabs)/index.tsx
-import { Text, View, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useAppSelector } from "../../hooks";
 import { RoleScreenRegistry } from "../../types/navigation";
 // Import your custom role-specific content layouts
@@ -8,7 +8,7 @@ import { LandlordHome } from "../../components/roles/landlord/home";
 import { SalesHome } from "../../components/roles/sales/home";
 // import { TenantHome } from "../../components/roles/tenant/home";
 
-import NotificationScreen from "@/components/global/notification";
+import NotificationScreen from "@/components/global/Notification";
 import { useGlobalNavigation } from "@/context/NavigationContext";
 
 export default function GenericHomeScreen() {
