@@ -15,6 +15,7 @@ import { SegmentTabs, TabOption } from "../../ui/landlord/units/SegmentTabs";
 import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 
 import LandlordFabOverlay from "@/components/ui/landlord/units/LandlordFabOverlay";
+import SelectLeaseUnitModal from "@/components/ui/landlord/units/SelectLeaseUnitModal";
 import UnitsFilterModal from "@/components/ui/landlord/units/UnitsFilterModal";
 import UnitsSortModal, {
   SortOrderType,
@@ -22,10 +23,12 @@ import UnitsSortModal, {
 import type { BuildingFormValues } from "./LandlordBuildingFormScreen";
 
 // 💡 Sub-view Screen Imports
+import { LandlordApplyForLeaseScreen } from "@/components/roles/landlord/LandlordApplyForLeaseScreen";
 import { useGlobalNavigation } from "@/context/NavigationContext";
 import { LandlordActionView } from "../../ui/landlord/action/ActionView";
 import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
 import { LandlordAddBuildingScreen } from "./LandlordAddBuildingScreen";
+import { LandlordAddUnitScreen } from "./LandlordAddUnitScreen";
 import { LandlordAnalytics } from "./LandlordAnalytics";
 import { LandlordBuildingDetails } from "./LandlordBuildingDetails";
 import { LandlordBuildingSettings } from "./LandlordBuildingSettings";
@@ -40,7 +43,6 @@ import { LandlordStatementVerification } from "./LandlordStatementVerification";
 import { LandlordUnitPerformanceScreen } from "./LandlordUnitPerfomanceScreen";
 import { LandlordWalletDetails } from "./LandlordWalletDetails";
 import { LandlordWallets } from "./LandlordWallets";
-import { LandlordAddUnitScreen } from "./LandlordAddUnitScreen";
 
 // const MOCK_BUILDINGS: BuildingItem[] = [
 //   { id: "b1", name: "Test 1" },
@@ -127,6 +129,16 @@ export function LandlordHome() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrderType>("asc");
+
+  const [isLeaseModalVisible, setIsLeaseModalVisible] = useState(false);
+  const [leaseSelectedUnit, setLeaseSelectedUnit] = useState("Room1");
+
+  const [leaseModalBuildingId, setLeaseModalBuildingId] = useState(
+    selectedBuilding.id,
+  );
+  const [leaseModalUnitId, setLeaseModalUnitId] = useState("1"); // Default unit ID
+
+  const [editingUnit, setEditingUnit] = useState<any | null>(null);
 
   const handleSelectBuilding = (building: BuildingItem) => {
     const fullBuilding = buildings.find((item) => item.id === building.id);
@@ -407,15 +419,48 @@ export function LandlordHome() {
     );
   }
 
-  if (currentSubDashboard === "add_unit") {
+  if (
+    currentSubDashboard === "add_unit" ||
+    currentSubDashboard === "edit_unit"
+  ) {
     return (
       <LandlordAddUnitScreen
         buildingName={selectedBuilding.name}
+        initialUnit={editingUnit} // 💡 Passes existing unit data when editing, undefined when adding
+        onBack={() => {
+          setEditingUnit(null);
+          navigateToSubDashboard("base");
+        }}
+        onSubmitUnit={(unitData, isEditing) => {
+          if (isEditing) {
+            console.log("Updated unit data:", unitData);
+            // TODO: Update unit in your state/backend array using editingUnit.id
+          } else {
+            console.log("Created new unit data:", unitData);
+            // TODO: Add unit to your backend/state array
+          }
+          setEditingUnit(null);
+          navigateToSubDashboard("base");
+        }}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "apply_lease") {
+    const chosenBuilding =
+      buildings.find((b) => b.id === leaseModalBuildingId)?.name ||
+      selectedBuilding.name;
+    const chosenUnit =
+      MOCK_UNITS.find((u) => u.id === leaseModalUnitId)?.name || "Room1";
+
+    return (
+      <LandlordApplyForLeaseScreen
+        selectedBuilding={chosenBuilding}
+        selectedUnit={chosenUnit}
         onBack={() => navigateToSubDashboard("base")}
-        onSubmitUnit={(unitData) => {
-          console.log("Unit submitted successfully:", unitData);
-          // TODO: Save unit to your backend / state array here
-          navigateToSubDashboard("base"); // Return to main dashboard after saving
+        onSubmitLease={(leaseData) => {
+          console.log("Lease application submitted successfully:", leaseData);
+          navigateToSubDashboard("base");
         }}
       />
     );
@@ -446,7 +491,23 @@ export function LandlordHome() {
             renderItem={({ item }) => (
               <UnitCard
                 item={item}
-                onEdit={(id) => console.log(`Edit unit ${id}`)}
+                onEdit={(id) => {
+                  const targetUnit = MOCK_UNITS.find((u) => u.id === id);
+                  if (targetUnit) {
+                    setEditingUnit({
+                      id: targetUnit.id,
+                      unitLabel: targetUnit.name,
+                      unitType: targetUnit.type,
+                      rentAmount: targetUnit.rent.replace(/[^0-9]/g, ""), // Clean currency numbers if needed
+                      bedrooms: String(targetUnit.bedrooms),
+                    });
+                    // navigateToSubDashboard("add_unit"); // 💡 Opens the shared screen in Edit Mode
+                    // 💡 2. Small delay to ensure state finishes updating before switching screens
+                    setTimeout(() => {
+                      navigateToSubDashboard("edit_unit");
+                    }, 50);
+                  }
+                }}
                 onDelete={(id) => console.log(`Delete unit ${id}`)}
                 onShare={(id) => console.log(`Share unit ${id}`)}
                 onViewDetails={(id) => console.log(`View unit ${id} details`)}
@@ -502,12 +563,32 @@ export function LandlordHome() {
           navigateToSubDashboard("add_building");
         }}
         onAddUnitPress={() => {
+          setEditingUnit(null);
           setIsFabOpen(false); // Close the FAB overlay menu
           navigateToSubDashboard("add_unit"); // 💡 ROUTE DIRECTLY TO ADD UNIT SCREEN
         }}
-        onApplyForLeasePress={() =>
-          console.log("Navigate or open Apply For Lease")
-        }
+        onApplyForLeasePress={() => {
+          setIsFabOpen(false); // Close FAB overlay menu
+          setIsLeaseModalVisible(true); // 💡 Triggers the lease unit selection modal
+        }}
+      />
+
+      {/* LEASE APPLICATION MODAL */}
+      <SelectLeaseUnitModal
+        visible={isLeaseModalVisible}
+        buildings={buildings.map((b) => ({
+          id: b.id,
+          name: b.name,
+          units: MOCK_UNITS.map((u) => ({ id: u.id, name: u.name })), // Maps your units pool
+        }))}
+        initialBuildingId={leaseModalBuildingId}
+        onCancel={() => setIsLeaseModalVisible(false)}
+        onProceed={(buildingId, unitId) => {
+          setLeaseModalBuildingId(buildingId);
+          setLeaseModalUnitId(unitId);
+          setIsLeaseModalVisible(false);
+          navigateToSubDashboard("apply_lease"); // Routes to the lease application screen
+        }}
       />
     </SafeAreaView>
   );

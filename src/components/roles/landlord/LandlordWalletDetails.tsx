@@ -41,29 +41,6 @@ export function LandlordWalletDetails({
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ================= 1. UPPER APPBAR ROW NAVIGATION ================= */}
-      {/* <View style={styles.appBar}>
-        <View style={styles.appBarLeft}>
-          <TouchableOpacity
-            onPress={() => setIsDrawerOpen(true)}
-            style={styles.menuButton}
-          >
-            <Ionicons name="menu" size={28} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.appBarTitle}>Test 1 wallet details</Text>
-        </View>
-        <View style={styles.appBarRight}>
-          <TouchableOpacity style={styles.appBarIconButton}>
-            <Ionicons name="notifications" size={24} color="#FFF" />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>L</Text>
-            <View style={styles.onlineIndicatorDot} />
-          </View>
-        </View>
-      </View> */}
-
       {/* ================= 2. CORE WORKSPACE AREA CONTROLLER ================= */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}

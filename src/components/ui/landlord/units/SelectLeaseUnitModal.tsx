@@ -1,10 +1,11 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal as PaperModal, Portal } from "react-native-paper";
+import { BuildingItem, BuildingPickerModal } from "./BuildingPickerModal"; // 💡 Reusing your existing component
+import { UnitPickerSelectModal } from "./UnitPickerSelectModal";
 
-export interface BuildingOption {
-  id: string;
-  name: string;
+export interface BuildingOption extends BuildingItem {
   units: { id: string; name: string }[];
 }
 
@@ -29,7 +30,6 @@ export default function SelectLeaseUnitModal({
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>(
     defaultBuilding?.id || "",
   );
-
   const activeBuilding =
     buildings.find((b) => b.id === selectedBuildingId) || buildings[0];
 
@@ -37,177 +37,231 @@ export default function SelectLeaseUnitModal({
     activeBuilding?.units[0]?.id || "",
   );
 
+  // Modal open states for sub-pickers
+  const [isBuildingModalOpen, setIsBuildingModalOpen] = useState(false);
+  const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeBuilding && activeBuilding.units.length > 0) {
+      const unitExists = activeBuilding.units.some(
+        (u) => u.id === selectedUnitId,
+      );
+      if (!unitExists) {
+        setSelectedUnitId(activeBuilding.units[0].id);
+      }
+    } else {
+      setSelectedUnitId("");
+    }
+  }, [selectedBuildingId]);
+
   const activeUnit =
     activeBuilding?.units.find((u) => u.id === selectedUnitId) ||
     activeBuilding?.units[0];
 
-  const handleCycleBuilding = () => {
-    if (!buildings.length) return;
-    const currentIndex = buildings.findIndex((b) => b.id === activeBuilding.id);
-    const nextBuilding = buildings[(currentIndex + 1) % buildings.length];
-    setSelectedBuildingId(nextBuilding.id);
-    setSelectedUnitId(nextBuilding.units[0]?.id || "");
-  };
-
-  const handleCycleUnit = () => {
-    if (!activeBuilding?.units.length) return;
-    const currentIndex = activeBuilding.units.findIndex(
-      (u) => u.id === activeUnit?.id,
-    );
-    const nextUnit =
-      activeBuilding.units[(currentIndex + 1) % activeBuilding.units.length];
-    setSelectedUnitId(nextUnit.id);
-  };
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.dialogCard}>
-          <Text style={styles.dialogTitle}>
-            Select unit for lease{"\n"}application
-          </Text>
+    <>
+      <Portal>
+        <PaperModal
+          visible={visible}
+          onDismiss={onCancel}
+          contentContainerStyle={styles.paperModalOverride}
+        >
+          <View style={styles.backdropScrim}>
+            <View style={styles.sheetContainer}>
+              <View style={styles.grabber} />
+              <View style={styles.headerDivider} />
 
-          {/* Select a Building Dropdown */}
-          <TouchableOpacity
-            style={styles.outlinedBox}
-            onPress={handleCycleBuilding}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.floatingLabel}>Select a Building</Text>
-            <MaterialCommunityIcons
-              name="home"
-              size={22}
-              color="#7DD3FC"
-              style={styles.leftIcon}
-            />
-            <Text style={styles.valueText}>
-              {activeBuilding?.name || "No Building"}
-            </Text>
-            <MaterialCommunityIcons
-              name="menu-down"
-              size={24}
-              color="#CBD5E1"
-            />
-          </TouchableOpacity>
+              <View style={styles.contentPadding}>
+                <Text style={styles.dialogTitle}>
+                  Select unit for lease application
+                </Text>
 
-          {/* Select a Unit Dropdown */}
-          <TouchableOpacity
-            style={styles.outlinedBox}
-            onPress={handleCycleUnit}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.floatingLabel}>Select a Unit</Text>
-            <MaterialCommunityIcons
-              name="bed"
-              size={22}
-              color="#7DD3FC"
-              style={styles.leftIcon}
-            />
-            <Text style={styles.valueText}>
-              {activeUnit?.name || "No Vacant Units"}
-            </Text>
-            <MaterialCommunityIcons
-              name="menu-down"
-              size={24}
-              color="#CBD5E1"
-            />
-          </TouchableOpacity>
+                {/* Building Trigger */}
+                <View style={styles.sectionCard}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionHeaderText}>
+                      Select a Building
+                    </Text>
+                  </View>
+                  <View style={styles.sectionBody}>
+                    <TouchableOpacity
+                      style={styles.dropdownTrigger}
+                      onPress={() => setIsBuildingModalOpen(true)}
+                    >
+                      <View style={styles.dropdownLeft}>
+                        <MaterialCommunityIcons
+                          name="home"
+                          size={20}
+                          color="#86d3ff"
+                          style={{ marginRight: 12 }}
+                        />
+                        <Text style={styles.dropdownText}>
+                          {activeBuilding?.name || "Select a Building"}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-down" size={20} color="#cbd5e1" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
-          {/* Action Buttons */}
-          <View style={styles.actionsRow}>
-            <TouchableOpacity onPress={onCancel} style={styles.actionBtn}>
-              <Text style={styles.actionBtnText}>CANCEL</Text>
-            </TouchableOpacity>
+                {/* Unit Trigger */}
+                <View style={styles.sectionCard}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionHeaderText}>Select a Unit</Text>
+                  </View>
+                  <View style={styles.sectionBody}>
+                    <TouchableOpacity
+                      style={styles.dropdownTrigger}
+                      onPress={() => setIsUnitModalOpen(true)}
+                    >
+                      <View style={styles.dropdownLeft}>
+                        <MaterialCommunityIcons
+                          name="bed"
+                          size={20}
+                          color="#86d3ff"
+                          style={{ marginRight: 12 }}
+                        />
+                        <Text style={styles.dropdownText}>
+                          {activeUnit?.name || "No Vacant Units"}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-down" size={20} color="#cbd5e1" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
 
-            <TouchableOpacity
-              onPress={() => {
-                if (activeBuilding && activeUnit) {
-                  onProceed(activeBuilding.id, activeUnit.id);
-                }
-              }}
-              style={styles.actionBtn}
-            >
-              <Text style={styles.actionBtnText}>PROCEED</Text>
-            </TouchableOpacity>
+              <View style={styles.footerBar}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={onCancel}
+                >
+                  <Text style={styles.cancelButtonText}>CANCEL</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.proceedButton}
+                  onPress={() =>
+                    activeBuilding &&
+                    activeUnit &&
+                    onProceed(activeBuilding.id, activeUnit.id)
+                  }
+                >
+                  <Text style={styles.proceedButtonText}>PROCEED</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
-    </Modal>
+        </PaperModal>
+      </Portal>
+
+      {/* --- REUSING YOUR EXISTING BUILDING PICKER MODAL --- */}
+      <BuildingPickerModal
+        visible={isBuildingModalOpen}
+        onClose={() => setIsBuildingModalOpen(false)}
+        buildings={buildings}
+        selectedBuildingId={selectedBuildingId}
+        onSelectBuilding={(building) => setSelectedBuildingId(building.id)}
+      />
+
+      {/* --- UNIT PICKER MODAL --- */}
+      <UnitPickerSelectModal
+        visible={isUnitModalOpen}
+        onClose={() => setIsUnitModalOpen(false)}
+        units={activeBuilding?.units || []}
+        selectedUnitId={selectedUnitId}
+        onSelectUnit={(id) => setSelectedUnitId(id)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  paperModalOverride: {
+    margin: 0,
+    padding: 0,
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.65)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  dialogCard: {
-    width: "100%",
-    backgroundColor: "#252E38",
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 20,
-    elevation: 8,
-  },
-  dialogTitle: {
-    color: "#F1F5F9",
-    fontSize: 22,
-    fontWeight: "400",
-    textAlign: "center",
-    lineHeight: 30,
-    marginBottom: 26,
-  },
-  outlinedBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#64748B",
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    height: 54,
-    marginBottom: 20,
-    position: "relative",
-  },
-  floatingLabel: {
-    position: "absolute",
-    top: -9,
-    left: 12,
-    backgroundColor: "#252E38",
-    paddingHorizontal: 6,
-    color: "#CBD5E1",
-    fontSize: 12,
-  },
-  leftIcon: {
-    marginRight: 14,
-  },
-  valueText: {
-    flex: 1,
-    color: "#F8FAFC",
-    fontSize: 16,
-  },
-  actionsRow: {
-    flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 20,
+  },
+  backdropScrim: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  sheetContainer: {
+    width: "100%",
+    maxWidth: 600,
+    backgroundColor: "#02435e",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    alignSelf: "center",
+    paddingTop: 12,
+  },
+  grabber: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#122c38",
+    alignSelf: "center",
+    marginBottom: 8,
+  },
+  headerDivider: {
+    height: 1,
+    backgroundColor: "#195a76",
     marginTop: 8,
+    marginHorizontal: 14,
   },
-  actionBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  actionBtnText: {
-    color: "#7DD3FC",
-    fontSize: 14,
+  contentPadding: { padding: 16, gap: 16 },
+  dialogTitle: {
+    color: "#ffffff",
+    fontSize: 20,
     fontWeight: "600",
-    letterSpacing: 0.5,
+    textAlign: "center",
+    marginBottom: 4,
   },
+  sectionCard: {
+    backgroundColor: "#161c24",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#252f41",
+    overflow: "hidden",
+  },
+  sectionHeader: {
+    backgroundColor: "#1e2736",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#252f41",
+  },
+  sectionHeaderText: { color: "#ffffff", fontSize: 14, fontWeight: "600" },
+  sectionBody: { padding: 14 },
+  dropdownTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#42526e",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    height: 50,
+    backgroundColor: "#161c24",
+  },
+  dropdownLeft: { flexDirection: "row", alignItems: "center" },
+  dropdownText: { color: "#e2e8f0", fontSize: 15 },
+  footerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    backgroundColor: "#02435e",
+    borderTopWidth: 1,
+    borderTopColor: "#195a76",
+    gap: 16,
+  },
+  cancelButton: { paddingVertical: 10, paddingHorizontal: 16 },
+  cancelButtonText: { color: "#86d3ff", fontSize: 14, fontWeight: "600" },
+  proceedButton: { paddingVertical: 10, paddingHorizontal: 16 },
+  proceedButtonText: { color: "#86d3ff", fontSize: 14, fontWeight: "600" },
 });

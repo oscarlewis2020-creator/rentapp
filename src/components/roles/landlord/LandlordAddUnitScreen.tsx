@@ -21,16 +21,33 @@ import { UnitTypeModal } from "@/components/ui/landlord/units/UnitTypeModal";
 
 import { LandlordUnitDescriptionEditorScreen } from "./LandlordUnitDescriptionEditorScreen";
 
+export interface UnitFormValues {
+  id?: string;
+  unitLabel: string;
+  unitType: string;
+  rentAmount: string;
+  bedrooms: string;
+  bathrooms?: string;
+  amenities?: string[];
+  description?: string;
+  images?: string[];
+}
+
 export interface AddUnitScreenProps {
   buildingName?: string;
-  onSubmitUnit?: (unitData: any) => void;
+  onSubmitUnit?: (unitData: any, isEditing?: boolean) => void;
   onBack?: () => void;
+  initialUnit?: UnitFormValues & { id?: string }; // 💡 Optional unit data for edit mode
 }
 
 export function LandlordAddUnitScreen({
   buildingName = "Test 1",
+  initialUnit,
+  onBack,
   onSubmitUnit,
 }: AddUnitScreenProps) {
+  const isEditing = !!initialUnit; // 💡 Determines mode dynamically
+
   // Form State
   const [unitName, setUnitName] = useState("Room21");
   const [unitType, setUnitType] = useState("Bedsitter");
@@ -235,42 +252,46 @@ export function LandlordAddUnitScreen({
         />
 
         {/* Number of units to duplicate */}
-        <OutlinedInput
-          label="Number of units to duplicate"
-          iconName="home-group"
-          value={duplicateCount}
-          onChangeText={setDuplicateCount}
-          keyboardType="numeric" // 💡 Brings up the numbers-only keyboard
-          placeholder="Number of units to duplicate..."
-          rightElement={
-            <TouchableOpacity
-              onPress={() => setShowDuplicateInfo((prev) => !prev)}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={22}
-                color="#CBD5E1"
-              />
-            </TouchableOpacity>
-          }
-        />
-
-        {/* Info Banner Dropdown Card (Matches your screenshot) */}
-        {showDuplicateInfo && (
-          <View style={styles.infoBannerBox}>
-            <Text style={styles.infoBannerText}>
-              Specify a unit count to bulk insert multiple units simultaneously.
-              For instance, if you enter "5," a total of 5 units will be
-              created, each labeled with an incremented number (e.g., Unit 1,
-              Unit 2, Unit 3, and so on)
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowDuplicateInfo(false)}
-              style={styles.infoCloseBtn}
-            >
-              <Ionicons name="close" size={18} color="#0F172A" />
-            </TouchableOpacity>
-          </View>
+        {/* Hide duplicate field when editing an existing unit */}
+        {!isEditing && (
+          <>
+            <OutlinedInput
+              label="Number of units to duplicate"
+              iconName="home-group"
+              value={duplicateCount}
+              onChangeText={setDuplicateCount}
+              keyboardType="numeric" // 💡 Brings up the numbers-only keyboard
+              placeholder="Number of units to duplicate..."
+              rightElement={
+                <TouchableOpacity
+                  onPress={() => setShowDuplicateInfo((prev) => !prev)}
+                >
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={22}
+                    color="#CBD5E1"
+                  />
+                </TouchableOpacity>
+              }
+            />
+            {/* Info Banner Dropdown Card*/}
+            {showDuplicateInfo && (
+              <View style={styles.infoBannerBox}>
+                <Text style={styles.infoBannerText}>
+                  Specify a unit count to bulk insert multiple units
+                  simultaneously. For instance, if you enter "5," a total of 5
+                  units will be created, each labeled with an incremented number
+                  (e.g., Unit 1, Unit 2, Unit 3, and so on)
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowDuplicateInfo(false)}
+                  style={styles.infoCloseBtn}
+                >
+                  <Ionicons name="close" size={18} color="#0F172A" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
 
         {/* Unit Description Field */}
@@ -332,9 +353,11 @@ export function LandlordAddUnitScreen({
           ))}
         </View>
 
-        {/* Submit Button */}
+        {/* Dynamic Submit / Save Button */}
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-          <Text style={styles.submitBtnText}>Submit</Text>
+          <Text style={styles.submitBtnText}>
+            {isEditing ? "Save Changes" : "Submit"}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

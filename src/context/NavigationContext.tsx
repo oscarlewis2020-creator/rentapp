@@ -26,7 +26,9 @@ export type DashboardState =
   | "unit_performance"
   | "notification"
   | "add_building"
-  | "add_unit";
+  | "add_unit"
+  | "apply_lease"
+  | "edit_unit";
 
 interface NavigationContextType {
   currentSubDashboard: DashboardState;

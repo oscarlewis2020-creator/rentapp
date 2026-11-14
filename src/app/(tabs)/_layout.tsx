@@ -70,8 +70,12 @@ export default function TabsLayout() {
         return "Notification";
       case "add_unit":
         return "Add Unit";
+      case "edit_unit":
+        return "Edit Unit";
       case "add_building":
         return "Add Building";
+      case "apply_lease":
+        return "Apply For Lease";
       case "permissions":
         return "Permissions";
       case "wallets":

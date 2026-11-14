@@ -38,7 +38,10 @@ export function UnitCard({
             <Ionicons name="share-social-outline" size={18} color="#9EA5B1" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => onEdit(item.id)}
+            onPress={() => {
+              onEdit(item.id);
+              console.log("Pencil icon pressed for unit ID:", item.id);
+            }}
             style={styles.iconButton}
           >
             <Ionicons name="pencil" size={18} color="#9EA5B1" />

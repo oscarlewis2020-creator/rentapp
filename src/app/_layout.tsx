@@ -111,7 +111,6 @@ function RootLayoutContent() {
         <Stack.Screen name="(auth)/signin" />
         <Stack.Screen name="(auth)/init-screen" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="notification" />
       </Stack>
     </RoleContext.Provider>
   );
