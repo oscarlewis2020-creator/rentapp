@@ -9,6 +9,7 @@ export interface UnitItem {
   type: string;
   bedrooms: number;
   status: "vacant" | "occupied";
+  isHidden?: boolean;
 }
 
 interface UnitCardProps {

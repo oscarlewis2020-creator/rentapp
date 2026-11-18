@@ -24,8 +24,12 @@ export default function TabsLayout() {
 
   // 💡 Redux state hooks to read active sub-dashboard layout state dynamically
   // If your sub-dashboard tracking lives in local state instead, you can expose a custom React Context provider handler hook!
-  const { currentSubDashboard, selectedBuildingName, navigateToSubDashboard } =
-    useGlobalNavigation();
+  const {
+    currentSubDashboard,
+    selectedBuildingName,
+    navigateToSubDashboard,
+    selectedUnitName,
+  } = useGlobalNavigation();
 
   // Localized Tab Firewall Guard
   useEffect(() => {
@@ -75,7 +79,10 @@ export default function TabsLayout() {
       case "add_building":
         return "Add Building";
       case "apply_lease":
-        return "Apply For Lease";
+      case "unit_details":
+        return selectedUnitName
+          ? `${selectedUnitName} Details`
+          : "Unit Details";
       case "permissions":
         return "Permissions";
       case "wallets":

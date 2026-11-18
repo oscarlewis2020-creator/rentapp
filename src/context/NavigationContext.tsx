@@ -28,19 +28,28 @@ export type DashboardState =
   | "add_building"
   | "add_unit"
   | "apply_lease"
-  | "edit_unit";
+  | "edit_unit"
+  | "unit_details";
 
 interface NavigationContextType {
   currentSubDashboard: DashboardState;
   selectedBuildingName: string;
+  selectedUnitName: string;
   navigateToSubDashboard: (nextState: DashboardState) => void;
   navigateBack: () => void;
   updateBuildingName: (name: string) => void;
+  updateUnitName: (name: string) => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(
   undefined,
 );
+
+const TRANSIENT_VIEWS: DashboardState[] = [
+  "edit_unit",
+  "add_unit",
+  "apply_lease",
+];
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   // 💡 1. Evaluator: Safely reads the '?view=' parameter from the address bar on Web load
@@ -48,7 +57,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get("view") as DashboardState;
-      if (viewParam) return viewParam;
+      if (viewParam && !TRANSIENT_VIEWS.includes(viewParam)) {
+        return viewParam;
+      }
     }
     return "base";
   };
@@ -73,6 +84,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     return ["base", initial];
   });
   const [selectedBuildingName, setSelectedBuildingName] = useState("Dashboard");
+  const [selectedUnitName, setSelectedUnitName] = useState("");
 
   // 💡 2. Navigation Core: Updates state and dynamically writes '?view=' query params to Web address bar
   const navigateToSubDashboard = (nextState: DashboardState) => {
@@ -171,14 +183,20 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setSelectedBuildingName(name);
   };
 
+  const updateUnitName = useCallback((name: string) => {
+    setSelectedUnitName(name);
+  }, []);
+
   return (
     <NavigationContext.Provider
       value={{
         currentSubDashboard,
         selectedBuildingName,
+        selectedUnitName,
         navigateToSubDashboard,
         navigateBack,
         updateBuildingName,
+        updateUnitName,
       }}
     >
       {children}

@@ -49,6 +49,7 @@ export function UnsavedChangesModal({
             <Text style={styles.dialogContinueText}>Continue editing</Text>
           </TouchableOpacity>
         </View>
+        ``
       </Modal>
     </Portal>
   );

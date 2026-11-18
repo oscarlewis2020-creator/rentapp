@@ -14,6 +14,7 @@ import { ControlActionBar } from "../../ui/landlord/units/ControlActionBar";
 import { SegmentTabs, TabOption } from "../../ui/landlord/units/SegmentTabs";
 import { UnitCard, UnitItem } from "../../ui/landlord/units/UnitCard";
 
+import DeleteUnitModal from "@/components/ui/landlord/units/DeleteUnitModal";
 import LandlordFabOverlay from "@/components/ui/landlord/units/LandlordFabOverlay";
 import SelectLeaseUnitModal from "@/components/ui/landlord/units/SelectLeaseUnitModal";
 import UnitsFilterModal from "@/components/ui/landlord/units/UnitsFilterModal";
@@ -40,6 +41,7 @@ import { LandlordPurchaseTokensScreen } from "./LandlordPurchaseTokens";
 import { LandlordSearchTenantScreen } from "./LandlordSearchTenantScreen";
 import { LandlordSmsDetails } from "./LandlordSmsDetailsScreen";
 import { LandlordStatementVerification } from "./LandlordStatementVerification";
+import { LandlordUnitDetailsScreen } from "./LandlordUnitDetailsScreen";
 import { LandlordUnitPerformanceScreen } from "./LandlordUnitPerfomanceScreen";
 import { LandlordWalletDetails } from "./LandlordWalletDetails";
 import { LandlordWallets } from "./LandlordWallets";
@@ -117,6 +119,14 @@ export function LandlordHome() {
   const [selectedBuilding, setSelectedBuilding] = useState<MockBuilding>(
     MOCK_BUILDINGS[0],
   );
+
+  const [units, setUnits] = useState<UnitItem[]>(MOCK_UNITS);
+  const [unitToDelete, setUnitToDelete] = useState<UnitItem | null>(null);
+
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(
+    MOCK_UNITS[0].id,
+  );
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("units");
   const [focusedSmsRow, setFocusedSmsRow] = useState({
@@ -171,6 +181,19 @@ export function LandlordHome() {
     console.log("Mock building updated:", updatedBuilding);
   };
 
+  const handleDeleteConfirmed = () => {
+    if (unitToDelete) {
+      setUnits((prev) => prev.filter((u) => u.id !== unitToDelete.id));
+      if (
+        selectedUnitId === unitToDelete.id &&
+        currentSubDashboard === "unit_details"
+      ) {
+        navigateToSubDashboard("base");
+      }
+    }
+    setUnitToDelete(null);
+  };
+
   // Dynamic tab configuration structures
   const tabOptions: TabOption[] = [
     {
@@ -213,7 +236,26 @@ export function LandlordHome() {
     navigateToSubDashboard,
     navigateBack,
     updateBuildingName,
+    updateUnitName,
   } = useGlobalNavigation();
+
+  const activeUnit =
+    units.find((u) => u.id === selectedUnitId) ?? units[0] ?? null;
+
+  useEffect(() => {
+    if (currentSubDashboard === "edit_unit" && !editingUnit) {
+      navigateToSubDashboard("base");
+    }
+    if (currentSubDashboard === "unit_details" && !activeUnit) {
+      navigateToSubDashboard("base");
+    }
+  }, [currentSubDashboard, editingUnit, activeUnit, navigateToSubDashboard]);
+
+  useEffect(() => {
+    if (currentSubDashboard === "unit_details" && activeUnit) {
+      updateUnitName(activeUnit.name);
+    }
+  }, [currentSubDashboard, activeUnit, updateUnitName]);
 
   // 💡 2. Keep the unified text headers synchronized globally whenever properties change
   useEffect(() => {
@@ -432,12 +474,45 @@ export function LandlordHome() {
           navigateToSubDashboard("base");
         }}
         onSubmitUnit={(unitData, isEditing) => {
-          if (isEditing) {
-            console.log("Updated unit data:", unitData);
-            // TODO: Update unit in your state/backend array using editingUnit.id
+          if (isEditing && editingUnit) {
+            setUnits((prev) =>
+              prev.map((u) =>
+                u.id === editingUnit.id
+                  ? {
+                      ...u,
+                      name: unitData.unitLabel ?? u.name,
+                      type: unitData.unitType ?? u.type,
+                      rent: unitData.rentAmount
+                        ? `KES ${Number(unitData.rentAmount).toLocaleString()}`
+                        : u.rent,
+                      bedrooms:
+                        unitData.bedrooms !== undefined
+                          ? Number(unitData.bedrooms)
+                          : u.bedrooms,
+                    }
+                  : u,
+              ),
+            );
           } else {
-            console.log("Created new unit data:", unitData);
-            // TODO: Add unit to your backend/state array
+            const newId = String(Date.now());
+            setUnits((prev) => [
+              ...prev,
+              {
+                id: newId,
+                name: unitData.unitLabel || `Room${prev.length + 1}`,
+                rent: unitData.rentAmount
+                  ? `KES ${Number(unitData.rentAmount).toLocaleString()}`
+                  : "KES 5,000",
+                type: unitData.unitType || "Bedsitter",
+                bedrooms: Number(unitData.bedrooms) || 0,
+                bathrooms: 1,
+                availableDate: "Jul-06-2026",
+                amenities: ["Hot Shower"],
+                images: [],
+                isHidden: false,
+                status: "vacant",
+              },
+            ]);
           }
           setEditingUnit(null);
           navigateToSubDashboard("base");
@@ -466,6 +541,57 @@ export function LandlordHome() {
     );
   }
 
+  if (currentSubDashboard === "unit_details" && activeUnit) {
+    return (
+      <LandlordUnitDetailsScreen
+        unit={activeUnit}
+        onBack={() => navigateToSubDashboard("base")}
+        onEditUnit={(target) => {
+          setEditingUnit({
+            id: target.id,
+            unitLabel: target.name,
+            unitType: target.type,
+            rentAmount: target.rent.replace(/[^0-9]/g, ""),
+            bedrooms: String(target.bedrooms),
+          });
+          navigateToSubDashboard("edit_unit");
+        }}
+        // onDeleteUnit={(target) => setUnitToDelete(target)}
+        onDeleteUnit={(target) => {
+          setUnits((prev) => prev.filter((u) => u.id !== target.id));
+          setUnitToDelete(null);
+          navigateToSubDashboard("base");
+        }}
+        onShareUnit={(target) => console.log("Share unit:", target.id)}
+        onApplyLease={(target) => {
+          setLeaseModalBuildingId(selectedBuilding.id);
+          setLeaseModalUnitId(target.id);
+          navigateToSubDashboard("apply_lease");
+        }}
+        onToggleHidden={(unitId) => {
+          setUnits((prev) =>
+            prev.map((u) =>
+              u.id === unitId ? { ...u, isHidden: !u.isHidden } : u,
+            ),
+          );
+        }}
+        onUpdateRent={(unitId, newRentNumeric) => {
+          const formatted = `KES ${Number(newRentNumeric).toLocaleString()}`;
+          setUnits((prev) =>
+            prev.map((u) => (u.id === unitId ? { ...u, rent: formatted } : u)),
+          );
+        }}
+        onUpdateImages={(unitId, updatedImages) => {
+          setUnits((prev) =>
+            prev.map((u) =>
+              u.id === unitId ? { ...u, images: updatedImages } : u,
+            ),
+          );
+        }}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       {/* 1. Dropdown input selector shell trigger */}
@@ -482,41 +608,68 @@ export function LandlordHome() {
         onSelectTab={setActiveTab}
       />
 
-      {/* 3. 🔥 DYNAMIC WORKSPACE ROUTER ROUTING ENVELOPE */}
+      {/* 3. Dynamic Workspace Router Envelope */}
       {activeTab === "units" ? (
         <View style={styles.tabContentWrapper}>
           <FlatList
-            data={MOCK_UNITS}
+            data={units}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <UnitCard
-                item={item}
-                onEdit={(id) => {
-                  const targetUnit = MOCK_UNITS.find((u) => u.id === id);
-                  if (targetUnit) {
-                    setEditingUnit({
-                      id: targetUnit.id,
-                      unitLabel: targetUnit.name,
-                      unitType: targetUnit.type,
-                      rentAmount: targetUnit.rent.replace(/[^0-9]/g, ""), // Clean currency numbers if needed
-                      bedrooms: String(targetUnit.bedrooms),
-                    });
-                    // navigateToSubDashboard("add_unit"); // 💡 Opens the shared screen in Edit Mode
-                    // 💡 2. Small delay to ensure state finishes updating before switching screens
-                    setTimeout(() => {
-                      navigateToSubDashboard("edit_unit");
-                    }, 50);
-                  }
-                }}
-                onDelete={(id) => console.log(`Delete unit ${id}`)}
-                onShare={(id) => console.log(`Share unit ${id}`)}
-                onViewDetails={(id) => console.log(`View unit ${id} details`)}
-              />
-            )}
+            renderItem={({ item }) => {
+              const cardItem: UnitItem = {
+                id: item.id,
+                name: item.name,
+                rent: item.rent,
+                type: item.type,
+                bedrooms: item.bedrooms,
+                status: item.status,
+              };
+
+              return (
+                <View style={styles.unitRowWrapper}>
+                  <UnitCard
+                    item={cardItem}
+                    onEdit={(id) => {
+                      const targetUnit = units.find((u) => u.id === id);
+                      if (targetUnit) {
+                        setEditingUnit({
+                          id: targetUnit.id,
+                          unitLabel: targetUnit.name,
+                          unitType: targetUnit.type,
+                          rentAmount: targetUnit.rent.replace(/[^0-9]/g, ""),
+                          bedrooms: String(targetUnit.bedrooms),
+                        });
+                        navigateToSubDashboard("edit_unit");
+                      }
+                    }}
+                    onDelete={(id) => {
+                      const target = units.find((u) => u.id === id);
+                      if (target) {
+                        setUnitToDelete(target);
+                      }
+                    }}
+                    onShare={(id) => console.log(`Share unit ${id}`)}
+                    onViewDetails={(id) => {
+                      setSelectedUnitId(id);
+                      navigateToSubDashboard("unit_details");
+                    }}
+                  />
+
+                  {item.isHidden && (
+                    <View pointerEvents="none" style={styles.hiddenEyeBadge}>
+                      <Ionicons
+                        name="eye-off-outline"
+                        size={16}
+                        color="#F87171"
+                      />
+                    </View>
+                  )}
+                </View>
+              );
+            }}
             contentContainerStyle={styles.scrollListContent}
             showsVerticalScrollIndicator={false}
           />
-          {/* Keep filters floating bar active only when managing units list */}
+
           <ControlActionBar
             onFilterPress={() => setIsFilterOpen(true)}
             onSortPress={() => setIsSortOpen(true)}
@@ -590,6 +743,16 @@ export function LandlordHome() {
           navigateToSubDashboard("apply_lease"); // Routes to the lease application screen
         }}
       />
+
+      {/* DELETE UNIT CONFIRMATION MODAL */}
+      <DeleteUnitModal
+        visible={Boolean(unitToDelete)}
+        unitName={unitToDelete?.name}
+        onCancel={() => setUnitToDelete(null)}
+        onConfirm={() => {
+          handleDeleteConfirmed();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -609,5 +772,19 @@ const styles = StyleSheet.create({
   scrollListContent: {
     paddingHorizontal: 16,
     paddingBottom: 100, // Safe padding spacer block so content clears the control bar overlay
+  },
+  unitRowWrapper: {
+    position: "relative",
+  },
+  hiddenEyeBadge: {
+    position: "absolute",
+    right: 92,
+    bottom: 24,
+    width: 34,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "rgba(248, 113, 113, 0.14)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
