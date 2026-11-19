@@ -14,7 +14,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ConfirmLeaseDeletionModal from "../../ui/landlord/units/ConfirmLeaseDeletionModal";
 import DeleteTenancyModal from "../../ui/landlord/units/DeleteTenancyModal";
 import GenerateLeaseStatementModal from "../../ui/landlord/units/GenerateLeaseStatementModal";
+import {
+  DEFAULT_LEASE_PAYMENT_FILTERS,
+  LeasePaymentFilters,
+} from "../../ui/landlord/units/LeasePaymentsFilterModal";
+import { PaymentSortOrder } from "../../ui/landlord/units/LeasePaymentsSortModal";
+import { PaymentTypeValue } from "../../ui/landlord/units/PaymentTypesModal";
 import { UnitLeaseItem } from "../../ui/landlord/units/UnitLeasesList";
+
+import LeasePaymentsFilterModal from "../../ui/landlord/units/LeasePaymentsFilterModal";
+import LeasePaymentsSortModal from "../../ui/landlord/units/LeasePaymentsSortModal";
 
 export interface LeaseTenantMember {
   id: string;
@@ -27,11 +36,14 @@ export interface LeaseTenantMember {
 
 export interface LeasePaymentEntry {
   id: string;
-  kind: "Discount" | "Waiver" | "Discrepancy";
+  kind: "Discount" | "Waiver" | "Discrepancy" | string;
+  paymentType?: PaymentTypeValue;
   amount: string;
   date: string;
   payer?: string;
   status?: string;
+  hasDiscrepancy?: boolean;
+  isDeleted?: boolean;
 }
 
 interface LandlordLeaseManagementScreenProps {
@@ -109,6 +121,45 @@ export function LandlordLeaseManagementScreen({
       date: "Apr-17-2025",
     },
   ]);
+
+  const [isPaymentsFilterOpen, setIsPaymentsFilterOpen] = useState(false);
+  const [isPaymentsSortOpen, setIsPaymentsSortOpen] = useState(false);
+  const [paymentFilters, setPaymentFilters] = useState<LeasePaymentFilters>(
+    DEFAULT_LEASE_PAYMENT_FILTERS,
+  );
+  const [paymentSortOrder, setPaymentSortOrder] =
+    useState<PaymentSortOrder>("newest");
+
+  const visiblePayments = React.useMemo(() => {
+    const filtered = payments.filter((entry) => {
+      if (!paymentFilters.includeDeleted && entry.isDeleted) return false;
+      if (
+        paymentFilters.onlyDiscrepancies &&
+        !entry.hasDiscrepancy &&
+        entry.kind !== "Discrepancy"
+      ) {
+        return false;
+      }
+      if (
+        paymentFilters.statuses.length > 0 &&
+        entry.status &&
+        !paymentFilters.statuses.includes(entry.status as any)
+      ) {
+        return false;
+      }
+      if (paymentFilters.types.length > 0) {
+        const normalizedType = entry.paymentType || entry.kind;
+        if (
+          !paymentFilters.types.includes(normalizedType as PaymentTypeValue)
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    return paymentSortOrder === "newest" ? filtered : [...filtered].reverse();
+  }, [payments, paymentFilters, paymentSortOrder]);
 
   const handleVoidPayment = (paymentId: string) => {
     setPayments((prev) => prev.filter((item) => item.id !== paymentId));
@@ -766,7 +817,7 @@ export function LandlordLeaseManagementScreen({
       {activeSegment === "payments" ? (
         <View style={styles.bottomPaymentsBar}>
           <Pressable
-            onPress={() => console.log("Filter lease payments")}
+            onPress={() => setIsPaymentsFilterOpen(true)}
             style={styles.paymentsFilterBtn}
           >
             <Ionicons name="options-outline" size={18} color="#E2E8F0" />
@@ -774,7 +825,7 @@ export function LandlordLeaseManagementScreen({
           </Pressable>
           <View style={styles.verticalSep} />
           <Pressable
-            onPress={() => console.log("Sort lease payments")}
+            onPress={() => setIsPaymentsSortOpen(true)}
             style={styles.paymentsFilterBtn}
           >
             <MaterialCommunityIcons
@@ -856,6 +907,20 @@ export function LandlordLeaseManagementScreen({
           setIsConfirmLeaseDeleteOpen(false);
           onDeleteLeaseConfirmed(lease.id);
         }}
+      />
+
+      <LeasePaymentsFilterModal
+        visible={isPaymentsFilterOpen}
+        initialFilters={paymentFilters}
+        onClose={() => setIsPaymentsFilterOpen(false)}
+        onApplyFilters={(filters) => setPaymentFilters(filters)}
+      />
+
+      <LeasePaymentsSortModal
+        visible={isPaymentsSortOpen}
+        selectedSort={paymentSortOrder}
+        onSelectSort={(order) => setPaymentSortOrder(order)}
+        onClose={() => setIsPaymentsSortOpen(false)}
       />
     </SafeAreaView>
   );

@@ -26,7 +26,11 @@ import type { BuildingFormValues } from "./LandlordBuildingFormScreen";
 // 💡 Sub-view Screen Imports
 import { LandlordApplyForLeaseScreen } from "@/components/roles/landlord/LandlordApplyForLeaseScreen";
 import { useGlobalNavigation } from "@/context/NavigationContext";
-import { LandlordActionView } from "../../ui/landlord/action/ActionView";
+import {
+  LandlordActionView,
+  LeaseActionSummary,
+  TenancyActionSummary,
+} from "../../ui/landlord/action/ActionView";
 import { LandlordExtraView } from "../../ui/landlord/extra/ExtraView";
 import { LandlordAddBuildingScreen } from "./LandlordAddBuildingScreen";
 import { LandlordAddUnitScreen } from "./LandlordAddUnitScreen";
@@ -36,6 +40,10 @@ import { LandlordBuildingSettings } from "./LandlordBuildingSettings";
 import { LandlordBuildingTenants } from "./LandlordBuildingTenants";
 import { LandlordBulkSms } from "./LandlordBulkSms";
 import { LandlordInventory } from "./LandlordInventory";
+import {
+  LandlordLeaseApplicationDetailsScreen,
+  LeaseRequestApplicantData,
+} from "./LandlordLeaseApplicationDetailsScreen";
 import { LandlordPermissions } from "./LandlordPermissions";
 import { LandlordPurchaseTokensScreen } from "./LandlordPurchaseTokens";
 import { LandlordSearchTenantScreen } from "./LandlordSearchTenantScreen";
@@ -114,6 +122,15 @@ const MOCK_UNITS: UnitItem[] = [
 ];
 
 export function LandlordHome() {
+  const {
+    currentSubDashboard,
+    navigateToSubDashboard,
+    navigateBack,
+    updateBuildingName,
+    updateUnitName,
+    updateApplicantName,
+  } = useGlobalNavigation();
+
   const [buildings, setBuildings] = useState<MockBuilding[]>(MOCK_BUILDINGS);
 
   const [selectedBuilding, setSelectedBuilding] = useState<MockBuilding>(
@@ -149,6 +166,61 @@ export function LandlordHome() {
   const [leaseModalUnitId, setLeaseModalUnitId] = useState("1"); // Default unit ID
 
   const [editingUnit, setEditingUnit] = useState<any | null>(null);
+
+  const [selectedLeaseApplication, setSelectedLeaseApplication] =
+    useState<LeaseRequestApplicantData | null>(null);
+
+  const handleOpenLeaseDetails = (lease: LeaseActionSummary) => {
+    setSelectedLeaseApplication({
+      id: lease.id,
+      entityType: "lease",
+      applicantName: lease.tenantName,
+      email: "owinojumahjerome@gmail.com",
+      phone: "+254742 301435",
+      secondaryPhone: "+254742 301435",
+      buildingName: lease.buildingName,
+      unitName: lease.unitName,
+      monthlyRent: "KES 15,000.00",
+      leaseStatus: lease.status,
+      role: "Resident Lease Holder",
+      movedInDate: lease.startDate,
+      leaseStartDate: lease.startDate,
+      leaseEndDate: lease.endDate,
+      dueDate: "May-01-2025",
+    });
+    updateApplicantName(lease.tenantName);
+    navigateToSubDashboard("lease_application_details");
+  };
+
+  const handleOpenTenancyDetails = (tenancy: TenancyActionSummary) => {
+    setSelectedLeaseApplication({
+      id: tenancy.id,
+      entityType: "tenancy",
+      applicantName: tenancy.tenantName,
+      email: "kamau@example.com",
+      phone: "+254700 000000",
+      secondaryPhone: "+254700 000000",
+      buildingName: tenancy.buildingName,
+      unitName: tenancy.unitName,
+      monthlyRent: "KES 15,000.00",
+      leaseStatus: "Terminated",
+      role: tenancy.role,
+      movedInDate: tenancy.startDate,
+      leaseStartDate: tenancy.startDate,
+      leaseEndDate: tenancy.endDate,
+      dueDate: "May-01-2025",
+    });
+    updateApplicantName(tenancy.tenantName);
+    navigateToSubDashboard("lease_application_details");
+  };
+
+  const closeLeaseApplicationDetails = () => {
+    setSelectedLeaseApplication(null);
+    updateApplicantName("");
+    if (currentSubDashboard === "lease_application_details") {
+      navigateBack();
+    }
+  };
 
   const handleSelectBuilding = (building: BuildingItem) => {
     const fullBuilding = buildings.find((item) => item.id === building.id);
@@ -231,14 +303,6 @@ export function LandlordHome() {
     },
   ];
 
-  const {
-    currentSubDashboard,
-    navigateToSubDashboard,
-    navigateBack,
-    updateBuildingName,
-    updateUnitName,
-  } = useGlobalNavigation();
-
   const activeUnit =
     units.find((u) => u.id === selectedUnitId) ?? units[0] ?? null;
 
@@ -256,6 +320,16 @@ export function LandlordHome() {
       updateUnitName(activeUnit.name);
     }
   }, [currentSubDashboard, activeUnit, updateUnitName]);
+
+  useEffect(() => {
+    if (
+      currentSubDashboard !== "lease_application_details" &&
+      selectedLeaseApplication
+    ) {
+      setSelectedLeaseApplication(null);
+      updateApplicantName("");
+    }
+  }, [currentSubDashboard, selectedLeaseApplication, updateApplicantName]);
 
   // 💡 2. Keep the unified text headers synchronized globally whenever properties change
   useEffect(() => {
@@ -592,6 +666,20 @@ export function LandlordHome() {
     );
   }
 
+  if (
+    selectedLeaseApplication &&
+    currentSubDashboard === "lease_application_details"
+  ) {
+    return (
+      <LandlordLeaseApplicationDetailsScreen
+        application={selectedLeaseApplication}
+        onBack={() => setSelectedLeaseApplication(null)}
+        onApproveSuccess={() => setSelectedLeaseApplication(null)}
+        onRejectSuccess={() => setSelectedLeaseApplication(null)}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       {/* 1. Dropdown input selector shell trigger */}
@@ -682,7 +770,10 @@ export function LandlordHome() {
         </View>
       ) : (
         <View style={styles.tabContentWrapper}>
-          <LandlordActionView />
+          <LandlordActionView
+            onOpenLeaseDetails={handleOpenLeaseDetails}
+            onOpenTenancyDetails={handleOpenTenancyDetails}
+          />
         </View>
       )}
 

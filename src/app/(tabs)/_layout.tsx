@@ -29,6 +29,7 @@ export default function TabsLayout() {
     selectedBuildingName,
     navigateToSubDashboard,
     selectedUnitName,
+    selectedApplicantName,
   } = useGlobalNavigation();
 
   // Localized Tab Firewall Guard
@@ -83,6 +84,10 @@ export default function TabsLayout() {
         return selectedUnitName
           ? `${selectedUnitName} Details`
           : "Unit Details";
+      case "lease_application_details":
+        return selectedApplicantName
+          ? `${selectedApplicantName} Details`
+          : "Applicant Details";
       case "permissions":
         return "Permissions";
       case "wallets":

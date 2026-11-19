@@ -29,16 +29,19 @@ export type DashboardState =
   | "add_unit"
   | "apply_lease"
   | "edit_unit"
-  | "unit_details";
+  | "unit_details"
+  | "lease_application_details";
 
 interface NavigationContextType {
   currentSubDashboard: DashboardState;
   selectedBuildingName: string;
   selectedUnitName: string;
+  selectedApplicantName: string;
   navigateToSubDashboard: (nextState: DashboardState) => void;
   navigateBack: () => void;
   updateBuildingName: (name: string) => void;
   updateUnitName: (name: string) => void;
+  updateApplicantName: (name: string) => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(
@@ -49,6 +52,7 @@ const TRANSIENT_VIEWS: DashboardState[] = [
   "edit_unit",
   "add_unit",
   "apply_lease",
+  "lease_application_details",
 ];
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
@@ -85,6 +89,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   });
   const [selectedBuildingName, setSelectedBuildingName] = useState("Dashboard");
   const [selectedUnitName, setSelectedUnitName] = useState("");
+
+  const [selectedApplicantName, setSelectedApplicantName] = useState("");
 
   // 💡 2. Navigation Core: Updates state and dynamically writes '?view=' query params to Web address bar
   const navigateToSubDashboard = (nextState: DashboardState) => {
@@ -187,6 +193,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setSelectedUnitName(name);
   }, []);
 
+  const updateApplicantName = useCallback((name: string) => {
+    setSelectedApplicantName(name);
+  }, []);
+
   return (
     <NavigationContext.Provider
       value={{
@@ -197,6 +207,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         navigateBack,
         updateBuildingName,
         updateUnitName,
+        selectedApplicantName,
+        updateApplicantName,
       }}
     >
       {children}
