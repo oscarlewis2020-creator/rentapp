@@ -1,29 +1,40 @@
 // components/roles/landlord/LandlordLeaseManagementScreen.tsx
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   View,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { LandlordLeaseNotesScreen } from "./LandlordLeaseNotesScreen";
+import { LandlordUnderstandingLeaseStatusesScreen } from "./LandlordUnderstandingLeaseStatusesScreen";
+
+import {
+  LEASE_ACTION_ITEMS,
+  LEASE_BANNERS,
+  LeaseActionKey,
+} from "../../ui/landlord/lease/LeaseActionConfig";
+import LeaseManagementModals from "../../ui/landlord/lease/LeaseManagementModals";
+import LeasePaymentActionsSection from "../../ui/landlord/lease/LeasePaymentActionsSection";
+import LeaseSummarySection from "../../ui/landlord/lease/LeaseSummarySection";
+
 import ConfirmLeaseDeletionModal from "../../ui/landlord/units/ConfirmLeaseDeletionModal";
 import DeleteTenancyModal from "../../ui/landlord/units/DeleteTenancyModal";
 import GenerateLeaseStatementModal from "../../ui/landlord/units/GenerateLeaseStatementModal";
-import {
+import LeasePaymentsFilterModal, {
   DEFAULT_LEASE_PAYMENT_FILTERS,
   LeasePaymentFilters,
 } from "../../ui/landlord/units/LeasePaymentsFilterModal";
-import { PaymentSortOrder } from "../../ui/landlord/units/LeasePaymentsSortModal";
+import LeasePaymentsSortModal, {
+  PaymentSortOrder,
+} from "../../ui/landlord/units/LeasePaymentsSortModal";
 import { PaymentTypeValue } from "../../ui/landlord/units/PaymentTypesModal";
 import { UnitLeaseItem } from "../../ui/landlord/units/UnitLeasesList";
-
-import LeasePaymentsFilterModal from "../../ui/landlord/units/LeasePaymentsFilterModal";
-import LeasePaymentsSortModal from "../../ui/landlord/units/LeasePaymentsSortModal";
 
 export interface LeaseTenantMember {
   id: string;
@@ -66,13 +77,50 @@ export function LandlordLeaseManagementScreen({
   onViewTenantDetails,
   onAddTenantsPress,
 }: LandlordLeaseManagementScreenProps) {
+  // ---------------- SUB-SCREENS & SEGMENTS ----------------
+  const [subScreen, setSubScreen] = useState<"notes" | "status_guide" | null>(
+    null,
+  );
   const [activeSegment, setActiveSegment] = useState<
     "actions" | "payments" | "tenants"
   >("actions");
 
+  // ---------------- LEASE ACTION MODALS & BANNER ----------------
+  const [isPayRentOpen, setIsPayRentOpen] = useState(false);
+  const [isChangeRentOpen, setIsChangeRentOpen] = useState(false);
+  const [isWaiveRentOpen, setIsWaiveRentOpen] = useState(false);
+  const [dateModalConfig, setDateModalConfig] = useState<{
+    open: boolean;
+    mode: "grace" | "endDate";
+  }>({ open: false, mode: "grace" });
+  const [isTerminateOpen, setIsTerminateOpen] = useState(false);
+  const [isVacateNoticeOpen, setIsVacateNoticeOpen] = useState(false);
+  const [isPhotoIdUploadOpen, setIsPhotoIdUploadOpen] = useState(false);
+  const [isUnitSwitchOpen, setIsUnitSwitchOpen] = useState(false);
+  const [isEmergencyContactOpen, setIsEmergencyContactOpen] = useState(false);
+  const [isEditPhoneOpen, setIsEditPhoneOpen] = useState(false);
+  const [feeModalConfig, setFeeModalConfig] = useState<{
+    open: boolean;
+    variant: "security_deposit" | "late_payment_fee";
+  }>({ open: false, variant: "security_deposit" });
+  const [prorateModalTarget, setProrateModalTarget] = useState<
+    "first_month" | "final_month" | null
+  >(null);
+
+  const [banner, setBanner] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: "",
+  });
+
+  const showBanner = (message: string) => setBanner({ visible: true, message });
+  const hideBanner = () => setBanner((prev) => ({ ...prev, visible: false }));
+
+  // ---------------- BILLING, TENANTS & PAYMENTS STATE ----------------
   const [billingCycle, setBillingCycle] = useState("Monthly");
   const [prorateFirstMonth, setProrateFirstMonth] = useState(true);
   const [prorateFinalMonth, setProrateFinalMonth] = useState(false);
+  const [tenantPhone, setTenantPhone] = useState("723568974");
+  const [tenantSecondaryPhone, setTenantSecondaryPhone] = useState("");
 
   const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
   const [isConfirmLeaseDeleteOpen, setIsConfirmLeaseDeleteOpen] =
@@ -130,7 +178,59 @@ export function LandlordLeaseManagementScreen({
   const [paymentSortOrder, setPaymentSortOrder] =
     useState<PaymentSortOrder>("newest");
 
-  const visiblePayments = React.useMemo(() => {
+  const hasOverpayment = false;
+  const primaryTenantName = lease.tenantName || tenants[0]?.name || "Outis";
+  const unitLabel = lease.unitName || "Room 7";
+
+  const handleActionPress = (key: LeaseActionKey) => {
+    onActionPress?.(key, lease);
+
+    switch (key) {
+      case "pay_rent":
+        return setIsPayRentOpen(true);
+      case "change_rent":
+        return setIsChangeRentOpen(true);
+      case "refund_rent":
+        if (!hasOverpayment) showBanner(LEASE_BANNERS.noOverpaymentRefund);
+        return;
+      case "waive_debt":
+        return setIsWaiveRentOpen(true);
+      case "adjust_grace_period":
+        return setDateModalConfig({ open: true, mode: "grace" });
+      case "adjust_lease_end_date":
+      case "adjust_tenant_end_date":
+        return setDateModalConfig({ open: true, mode: "endDate" });
+      case "terminate_lease":
+        setIsTerminateOpen(true);
+        return showBanner(LEASE_BANNERS.pendingRequestsTerminate);
+      case "issue_notice_to_vacate":
+        return setIsVacateNoticeOpen(true);
+      case "lease_notes":
+        return setSubScreen("notes");
+      case "update_tenant_photo_id":
+        return setIsPhotoIdUploadOpen(true);
+      case "add_emergency_contact":
+        return setIsEmergencyContactOpen(true);
+      case "edit_tenant_phone":
+        return setIsEditPhoneOpen(true);
+      case "understanding_lease_status":
+        return setSubScreen("status_guide");
+      default:
+        return;
+    }
+  };
+
+  const handleProrateProceed = () => {
+    if (prorateModalTarget === "first_month") {
+      setProrateFirstMonth((prev) => !prev);
+    } else if (prorateModalTarget === "final_month") {
+      setProrateFinalMonth((prev) => !prev);
+    }
+    setProrateModalTarget(null);
+    showBanner(LEASE_BANNERS.noChangesMade);
+  };
+
+  const visiblePayments = useMemo(() => {
     const filtered = payments.filter((entry) => {
       if (!paymentFilters.includeDeleted && entry.isDeleted) return false;
       if (
@@ -161,34 +261,25 @@ export function LandlordLeaseManagementScreen({
     return paymentSortOrder === "newest" ? filtered : [...filtered].reverse();
   }, [payments, paymentFilters, paymentSortOrder]);
 
-  const handleVoidPayment = (paymentId: string) => {
-    setPayments((prev) => prev.filter((item) => item.id !== paymentId));
-  };
+  if (subScreen === "notes") {
+    return (
+      <LandlordLeaseNotesScreen
+        unitName={unitLabel}
+        onBack={() => setSubScreen(null)}
+      />
+    );
+  }
 
-  const renderActionRow = (
-    key: string,
-    title: string,
-    icon: React.ReactNode,
-    isLast = false,
-  ) => (
-    <Pressable
-      key={key}
-      onPress={() => onActionPress?.(key, lease)}
-      style={[styles.actionRow, isLast && styles.lastRow]}
-    >
-      <View style={styles.actionLeft}>
-        {icon}
-        <Text style={styles.actionTitle}>{title}</Text>
-      </View>
-      <View style={styles.chevronCircle}>
-        <Feather name="chevron-right" size={15} color="#0F172A" />
-      </View>
-    </Pressable>
-  );
+  if (subScreen === "status_guide") {
+    return (
+      <LandlordUnderstandingLeaseStatusesScreen
+        onBack={() => setSubScreen(null)}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Top Header */}
       <View style={styles.topHeader}>
         <Pressable onPress={onBack} hitSlop={10} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#F1F5F9" />
@@ -206,7 +297,6 @@ export function LandlordLeaseManagementScreen({
             <Text style={styles.statusUnderline}>
               {lease.status.toUpperCase()}
             </Text>
-
             <Pressable
               onPress={() => setIsConfirmLeaseDeleteOpen(true)}
               style={styles.topDeleteBtn}
@@ -224,7 +314,6 @@ export function LandlordLeaseManagementScreen({
               />
               <Text style={styles.rowLabel}>Balance</Text>
             </View>
-
             <View style={styles.balanceRight}>
               <Text style={styles.balanceValue}>
                 {lease.balance} <Text style={styles.debtTag}>[Debt]</Text>
@@ -244,7 +333,7 @@ export function LandlordLeaseManagementScreen({
           </View>
         </View>
 
-        {/* 3-Segment Tab Bar: Actions | Payments | Tenants */}
+        {/* Segment Bar */}
         <View style={styles.segmentRow}>
           <Pressable
             onPress={() => setActiveSegment("actions")}
@@ -299,341 +388,71 @@ export function LandlordLeaseManagementScreen({
             <Text style={styles.sectionTitle}>Lease Actions</Text>
 
             <View style={styles.cardBox}>
-              {renderActionRow(
-                "pay_rent",
-                "Pay rent (on tenant's behalf)",
-                <MaterialCommunityIcons
-                  name="cash-plus"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "change_rent",
-                "Change rent",
-                <MaterialCommunityIcons
-                  name="cash-multiple"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "refund_rent",
-                "Refund rent",
-                <MaterialCommunityIcons
-                  name="cash-refund"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "waive_debt",
-                "Waive debt",
-                <MaterialCommunityIcons
-                  name="cancel"
-                  size={20}
-                  color="#CBD5E1"
-                />,
-              )}
-              {renderActionRow(
-                "adjust_grace_period",
-                "Adjust grace period",
-                <MaterialCommunityIcons
-                  name="clock-edit-outline"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "adjust_lease_end_date",
-                "Adjust lease end date",
-                <MaterialCommunityIcons
-                  name="calendar-plus"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "terminate_lease",
-                "Terminate lease",
-                <MaterialCommunityIcons
-                  name="calendar-remove"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "adjust_tenant_end_date",
-                "Adjust tenant end date",
-                <MaterialCommunityIcons
-                  name="calendar-plus"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "issue_notice_to_vacate",
-                "Issue notice to vacate",
-                <MaterialCommunityIcons
-                  name="calendar-minus"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "view_lease_agreement",
-                "View lease agreement",
-                <MaterialCommunityIcons
-                  name="file-document-edit-outline"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "lease_notes",
-                "Lease notes",
-                <MaterialCommunityIcons
-                  name="note-text-outline"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "update_tenant_photo_id",
-                "Update tenant photo ID",
-                <MaterialCommunityIcons
-                  name="card-account-details-outline"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "add_emergency_contact",
-                "Add Emergency Contact",
-                <MaterialCommunityIcons
-                  name="account-box-outline"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "edit_tenant_phone",
-                "Edit tenant(s) Phone Number",
-                <MaterialCommunityIcons
-                  name="account-edit-outline"
-                  size={20}
-                  color="#38BDF8"
-                />,
-              )}
-              {renderActionRow(
-                "understanding_lease_status",
-                "Understanding Lease Status",
-                <MaterialCommunityIcons
-                  name="playlist-check"
-                  size={20}
-                  color="#38BDF8"
-                />,
-                true,
-              )}
-            </View>
-
-            {/* Payment Actions Section */}
-            <View style={styles.paymentActionsHeader}>
-              <Text style={styles.sectionTitle}>Payment Actions</Text>
-              <Ionicons name="alert-circle-outline" size={20} color="#E2E8F0" />
-            </View>
-
-            <View style={styles.cardBox}>
-              <View style={styles.billingCycleBlock}>
-                <Text style={styles.floatingFieldLabel}>Billing Cycle</Text>
+              {LEASE_ACTION_ITEMS.map((item, idx) => (
                 <Pressable
-                  onPress={() =>
-                    setBillingCycle((prev) =>
-                      prev === "Monthly"
-                        ? "Daily"
-                        : prev === "Daily"
-                          ? "Semester"
-                          : "Monthly",
-                    )
-                  }
-                  style={styles.billingDropdown}
+                  key={item.key}
+                  onPress={() => handleActionPress(item.key)}
+                  style={[
+                    styles.actionRow,
+                    idx === LEASE_ACTION_ITEMS.length - 1 && styles.lastRow,
+                  ]}
                 >
-                  <Text style={styles.billingValue}>{billingCycle}</Text>
-                  <Ionicons name="caret-down" size={14} color="#E2E8F0" />
-                </Pressable>
-              </View>
-
-              <View style={styles.configRow}>
-                <MaterialCommunityIcons
-                  name="cash-lock"
-                  size={20}
-                  color="#38BDF8"
-                />
-                <View style={styles.configTextCol}>
-                  <Text style={styles.configTitle}>
-                    Security Deposit KES 15,000
-                  </Text>
-                  <Text style={styles.configSubtitle}>
-                    Require a security deposit for new lease applications.
-                  </Text>
-                </View>
-                <Feather name="edit-2" size={18} color="#94A3B8" />
-              </View>
-
-              <View style={styles.configRow}>
-                <MaterialCommunityIcons
-                  name="cash-clock"
-                  size={20}
-                  color="#38BDF8"
-                />
-                <View style={styles.configTextCol}>
-                  <Text style={styles.configTitle}>Late Payment Fee 10%</Text>
-                  <Text style={styles.configSubtitle}>
-                    Impose a fee for late payment of rent.
-                  </Text>
-                </View>
-                <Feather name="edit-2" size={18} color="#94A3B8" />
-              </View>
-
-              <View style={styles.simpleConfigRow}>
-                <MaterialCommunityIcons
-                  name="percent-outline"
-                  size={20}
-                  color="#38BDF8"
-                />
-                <Text style={styles.configTitleFlex}>
-                  Monthly discount KES 0
-                </Text>
-                <Feather name="edit-2" size={18} color="#38BDF8" />
-              </View>
-
-              <View style={styles.simpleConfigRow}>
-                <MaterialCommunityIcons
-                  name="key-change"
-                  size={20}
-                  color="#38BDF8"
-                />
-                <Text style={styles.configTitleFlex}>Prorate First Month</Text>
-                <Switch
-                  value={prorateFirstMonth}
-                  onValueChange={setProrateFirstMonth}
-                  trackColor={{ false: "#475569", true: "#0D9488" }}
-                  thumbColor="#F8FAFC"
-                />
-              </View>
-
-              <View style={[styles.simpleConfigRow, styles.lastRow]}>
-                <MaterialCommunityIcons
-                  name="key-change"
-                  size={20}
-                  color="#38BDF8"
-                />
-                <Text style={styles.configTitleFlex}>Prorate Final Month</Text>
-                <Switch
-                  value={prorateFinalMonth}
-                  onValueChange={setProrateFinalMonth}
-                  trackColor={{ false: "#475569", true: "#0D9488" }}
-                  thumbColor="#F8FAFC"
-                />
-              </View>
-            </View>
-
-            {/* Lease Summary & Rent History */}
-            <Text style={styles.sectionTitle}>Lease Summary</Text>
-
-            <View style={styles.cardBox}>
-              <View style={styles.summaryMetaRow}>
-                <View style={styles.rowLeft}>
-                  <MaterialCommunityIcons
-                    name="cash-multiple"
-                    size={19}
-                    color="#38BDF8"
-                  />
-                  <Text style={styles.rowLabel}>Current Rent</Text>
-                </View>
-                <Text style={styles.blueMetaValue}>
-                  {lease.monthlyRent || "KES 15,000"}
-                </Text>
-              </View>
-
-              <View style={styles.summaryMetaRow}>
-                <View style={styles.rowLeft}>
-                  <MaterialCommunityIcons
-                    name="cash-multiple"
-                    size={19}
-                    color="#38BDF8"
-                  />
-                  <Text style={styles.rowLabel}>Total Paid</Text>
-                </View>
-                <Text style={styles.blueMetaValue}>KES 10,200</Text>
-              </View>
-
-              <View style={styles.summaryMetaRow}>
-                <View style={styles.rowLeft}>
-                  <Ionicons name="time-outline" size={19} color="#38BDF8" />
-                  <Text style={styles.rowLabel}>Due Date</Text>
-                </View>
-                <Text style={styles.blueMetaValue}>
-                  {lease.dueDate || "Apr-17-2025"}
-                </Text>
-              </View>
-
-              <View style={styles.summaryMetaRow}>
-                <View style={styles.rowLeft}>
-                  <MaterialCommunityIcons
-                    name="calendar-check-outline"
-                    size={19}
-                    color="#38BDF8"
-                  />
-                  <Text style={styles.rowLabel}>Start Date</Text>
-                </View>
-                <Text style={styles.blueMetaValue}>
-                  {lease.leaseStartDate || "Apr-17-2025"}
-                </Text>
-              </View>
-
-              <View style={styles.summaryMetaRow}>
-                <View style={styles.rowLeft}>
-                  <MaterialCommunityIcons
-                    name="calendar-arrow-right"
-                    size={19}
-                    color="#38BDF8"
-                  />
-                  <Text style={styles.rowLabel}>End Date</Text>
-                </View>
-                <Text style={styles.blueMetaValue}>{lease.endDate}</Text>
-              </View>
-
-              <View style={[styles.rentHistoryBox, styles.lastRow]}>
-                <Text style={styles.rentHistoryTitle}>Rent History</Text>
-                <View style={styles.historyHeaderRow}>
-                  <View style={styles.rowLeft}>
+                  <View style={styles.actionLeft}>
                     <MaterialCommunityIcons
-                      name="wallet-outline"
-                      size={18}
-                      color="#38BDF8"
+                      name={item.iconName}
+                      size={20}
+                      color={item.iconColor || "#38BDF8"}
                     />
-                    <Text style={styles.historyHeaderText}>Starting On</Text>
+                    <Text style={styles.actionTitle}>{item.title}</Text>
                   </View>
-                  <Text style={styles.historyHeaderText}>Amount</Text>
-                </View>
-
-                <View style={styles.historyItemRow}>
-                  <View style={styles.rowLeft}>
-                    <Feather name="minus" size={16} color="#94A3B8" />
-                    <Text style={styles.blueMetaValue}>Apr-17-2025</Text>
+                  <View style={styles.chevronCircle}>
+                    <Feather name="chevron-right" size={15} color="#0F172A" />
                   </View>
-                  <Text style={styles.blueMetaValue}>KES 15,000</Text>
-                </View>
-              </View>
+                </Pressable>
+              ))}
             </View>
+
+            <LeasePaymentActionsSection
+              billingCycle={billingCycle}
+              prorateFirstMonth={prorateFirstMonth}
+              prorateFinalMonth={prorateFinalMonth}
+              onCycleBillingCycle={() =>
+                setBillingCycle((prev) =>
+                  prev === "Monthly"
+                    ? "Daily"
+                    : prev === "Daily"
+                      ? "Semester"
+                      : "Monthly",
+                )
+              }
+              onPressInfo={() => showBanner(LEASE_BANNERS.dailyBillingInfo)}
+              onEditSecurityDeposit={() =>
+                setFeeModalConfig({ open: true, variant: "security_deposit" })
+              }
+              onEditLateFee={() =>
+                setFeeModalConfig({ open: true, variant: "late_payment_fee" })
+              }
+              onEditMonthlyDiscount={() => {
+                if (billingCycle !== "Monthly") {
+                  showBanner(LEASE_BANNERS.monthlyDiscountOnly);
+                }
+              }}
+              onToggleProrateFirstMonth={() =>
+                setProrateModalTarget("first_month")
+              }
+              onToggleProrateFinalMonth={() =>
+                setProrateModalTarget("final_month")
+              }
+            />
+
+            <LeaseSummarySection lease={lease} />
           </View>
         )}
 
         {/* SEGMENT 2: PAYMENTS */}
         {activeSegment === "payments" && (
           <View style={styles.sectionStack}>
-            {payments.map((entry) => (
+            {visiblePayments.map((entry) => (
               <View key={entry.id} style={styles.paymentCard}>
                 <View style={styles.paymentKindCol}>
                   <Text style={styles.paymentKindTitle}>{entry.kind}</Text>
@@ -715,7 +534,11 @@ export function LandlordLeaseManagementScreen({
                     </View>
 
                     <Pressable
-                      onPress={() => handleVoidPayment(entry.id)}
+                      onPress={() =>
+                        setPayments((prev) =>
+                          prev.filter((item) => item.id !== entry.id),
+                        )
+                      }
                       style={styles.voidPillBtn}
                     >
                       <Ionicons name="ban-outline" size={14} color="#F87171" />
@@ -860,7 +683,7 @@ export function LandlordLeaseManagementScreen({
             </Pressable>
           ) : (
             <Pressable
-              onPress={() => console.log("Open lease info / alert")}
+              onPress={() => showBanner(LEASE_BANNERS.statementAndProrateInfo)}
               style={styles.infoCircleBtn}
             >
               <Ionicons name="information-outline" size={20} color="#38BDF8" />
@@ -869,7 +692,7 @@ export function LandlordLeaseManagementScreen({
         </View>
       )}
 
-      {/* Modals */}
+      {/* Statement, Deletion & Payment Filter/Sort Modals */}
       <GenerateLeaseStatementModal
         visible={isStatementModalOpen}
         initialStartDate={lease.leaseStartDate || "Apr-17-2025"}
@@ -921,6 +744,94 @@ export function LandlordLeaseManagementScreen({
         selectedSort={paymentSortOrder}
         onSelectSort={(order) => setPaymentSortOrder(order)}
         onClose={() => setIsPaymentsSortOpen(false)}
+      />
+
+      {/* Action Modals & Banner */}
+      <LeaseManagementModals
+        tenantName={primaryTenantName}
+        unitName={unitLabel}
+        buildingName={lease.buildingName || "Demo Building"}
+        tenantPhone={tenantPhone}
+        tenantSecondaryPhone={tenantSecondaryPhone}
+        onUpdateTenantPhones={(phone, secondary) => {
+          setTenantPhone(phone);
+          setTenantSecondaryPhone(secondary);
+        }}
+        isPayRentOpen={isPayRentOpen}
+        onClosePayRent={() => setIsPayRentOpen(false)}
+        onSelectPaymentMethod={(method) => {
+          setIsPayRentOpen(false);
+          console.log("Selected payment method:", method);
+        }}
+        isChangeRentOpen={isChangeRentOpen}
+        onCloseChangeRent={() => setIsChangeRentOpen(false)}
+        onSubmitRentChange={(payload) => {
+          setIsChangeRentOpen(false);
+          console.log("Rent changed:", payload);
+        }}
+        isWaiveRentOpen={isWaiveRentOpen}
+        onCloseWaiveRent={() => setIsWaiveRentOpen(false)}
+        onConfirmWaiveRent={(amount) => {
+          setIsWaiveRentOpen(false);
+          console.log("Rent waived:", amount);
+        }}
+        dateModalConfig={dateModalConfig}
+        onCloseDateModal={() =>
+          setDateModalConfig((prev) => ({ ...prev, open: false }))
+        }
+        onConfirmDateAdjust={(newDate) => {
+          setDateModalConfig((prev) => ({ ...prev, open: false }));
+          console.log("Adjusted date:", dateModalConfig.mode, newDate);
+        }}
+        isTerminateOpen={isTerminateOpen}
+        onCloseTerminate={() => {
+          setIsTerminateOpen(false);
+          hideBanner();
+        }}
+        onConfirmTerminate={(terminationDate) => {
+          setIsTerminateOpen(false);
+          hideBanner();
+          console.log("Lease terminated on:", terminationDate);
+        }}
+        isVacateNoticeOpen={isVacateNoticeOpen}
+        onCloseVacateNotice={() => setIsVacateNoticeOpen(false)}
+        onConfirmVacateNotice={(payload) => {
+          setIsVacateNoticeOpen(false);
+          console.log("Vacate notice issued:", payload);
+        }}
+        isPhotoIdUploadOpen={isPhotoIdUploadOpen}
+        onClosePhotoIdUpload={() => setIsPhotoIdUploadOpen(false)}
+        onSubmitPhotoId={(source) => {
+          setIsPhotoIdUploadOpen(false);
+          console.log("Photo ID submitted from:", source);
+        }}
+        isUnitSwitchOpen={isUnitSwitchOpen}
+        onCloseUnitSwitch={() => setIsUnitSwitchOpen(false)}
+        onConfirmUnitSwitch={(newUnit) => {
+          setIsUnitSwitchOpen(false);
+          console.log("Switched tenant to unit:", newUnit);
+        }}
+        isEmergencyContactOpen={isEmergencyContactOpen}
+        onCloseEmergencyContact={() => setIsEmergencyContactOpen(false)}
+        onSaveEmergencyContacts={(selected) => {
+          setIsEmergencyContactOpen(false);
+          console.log("Saved emergency contacts:", selected);
+        }}
+        isEditPhoneOpen={isEditPhoneOpen}
+        onCloseEditPhone={() => setIsEditPhoneOpen(false)}
+        feeModalConfig={feeModalConfig}
+        onCloseFeeModal={() =>
+          setFeeModalConfig((prev) => ({ ...prev, open: false }))
+        }
+        onUpdateFeeConfig={(payload) => {
+          setFeeModalConfig((prev) => ({ ...prev, open: false }));
+          console.log("Updated fee config:", feeModalConfig.variant, payload);
+        }}
+        isProrateModalOpen={prorateModalTarget !== null}
+        onCloseProrateModal={() => setProrateModalTarget(null)}
+        onProceedProrate={handleProrateProceed}
+        banner={banner}
+        onDismissBanner={hideBanner}
       />
     </SafeAreaView>
   );
@@ -1067,12 +978,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
   },
-  paymentActionsHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 4,
-  },
   cardBox: {
     backgroundColor: "#1A2332",
     borderRadius: 12,
@@ -1108,110 +1013,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  billingCycleBlock: {
-    position: "relative",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  floatingFieldLabel: {
-    position: "absolute",
-    top: -9,
-    left: 12,
-    zIndex: 2,
-    backgroundColor: "#1A2332",
-    paddingHorizontal: 6,
-    color: "#CBD5E1",
-    fontSize: 12,
-  },
-  billingDropdown: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "#64748B",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  billingValue: {
-    color: "#F8FAFC",
-    fontSize: 15,
-  },
-  configRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#243142",
-  },
-  configTextCol: {
-    flex: 1,
-    gap: 2,
-  },
-  configTitle: {
-    color: "#F1F5F9",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  configSubtitle: {
-    color: "#94A3B8",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  simpleConfigRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#243142",
-    gap: 12,
-  },
-  configTitleFlex: {
-    flex: 1,
-    color: "#F1F5F9",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  summaryMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#243142",
-  },
   blueMetaValue: {
     color: "#38BDF8",
     fontSize: 14,
     fontWeight: "500",
-  },
-  rentHistoryBox: {
-    paddingVertical: 14,
-    gap: 10,
-  },
-  rentHistoryTitle: {
-    color: "#E2E8F0",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  historyHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 4,
-  },
-  historyHeaderText: {
-    color: "#CBD5E1",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  historyItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 4,
   },
   paymentCard: {
     flexDirection: "row",
