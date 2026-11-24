@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "es2022",
+    "moduleResolution": "nodenext",
+    "types": ["node", "express"],
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./ts",
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["ts/**/*"]
+}

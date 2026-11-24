@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  
+    <header>
+      <h1>
+        merchant
+      </h1>
+    </header>
+<main>
+  <p>Jenga wallet:<span id="balance">loading...</span></p>
+
+
+<div class="payout-container">
+ 
+  <form id="payoutForm">
+    <div class="form-group">
+  <label for="organizationId">Sender Organization ID:</label>
+  <input type="text" id="organizationId" placeholder="e.g.,12345678" required />
+</div>
+
+
+    <div class="form-group">
+      <label for="recipientAccount"> Phone Number:</label>
+      <input type="text" id="recipientAccount" name="recipientAccount" placeholder="e.g., 0712345678" required>
+    </div>
+
+    <div class="form-group">
+      <label for="recipientName">Recipient Name:</label>
+      <input type="text" id="recipientName" name="recipientName" placeholder="e.g., Jane Doe" required>
+    </div>
+
+    <div class="form-group">
+      <label for="amount">Amount :</label>
+      <input type="number" id="amount" name="amount" placeholder="100.00" step="0.01" required>
+    </div>
+
+    <div class="field-group">
+      <label for="currency">Currency</label>
+      <select id="currency">
+        <option value="KES">KES</option>
+      </select>
+    </div>
+
+    <button type="submit" id="send-money-btn">Send Money</button>
+  </form>
+</div>
+
+
+
+ 
+
+</main>
+  
+<script src="../ts/app.js"></script>
+
+</body>
+</html>
