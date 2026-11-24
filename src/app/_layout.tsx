@@ -1,7 +1,7 @@
 // app/_layout.tsx
 import { NavigationProvider } from "@/context/NavigationContext";
-import { Stack, usePathname, useRouter } from "expo-router"; // 💡 Add usePathname to prevent layout loops
-import { createContext, useContext, useEffect, useState } from "react";
+import { Stack, usePathname, useRouter } from "expo-router";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { Provider } from "react-redux";
@@ -10,9 +10,8 @@ import { setRole, store } from "../store";
 import { bootstrapAuthSession } from "../store/authSlice";
 import { RoleContextType, UserRole } from "../types/navigation";
 
-// import LockScreen from "../components/ui/lock/LockScreen";
 import LockScreen from "../components/ui/settings/LockScreen";
-import { useBiometricLock } from "../components/ui/settings/useBiometricLock";
+import { useBiometricLock } from "../components/ui/settings/UseBiometricLock";
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
@@ -33,14 +32,14 @@ function RootLayoutContent() {
   const { currentRole } = useAppSelector((state) => state.role);
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const pathname = usePathname(); // 💡 Track current position safely
+  const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    dispatch(bootstrapAuthSession());
+    void dispatch(bootstrapAuthSession());
   }, [dispatch]);
 
-  // 💡 Root Firewall: Handles high-level redirection boundaries safely
+  // Handles high-level redirection boundaries safely
   useEffect(() => {
     if (isInitializing) return;
 
@@ -51,10 +50,9 @@ function RootLayoutContent() {
       }
       return;
     }
-
-    // --- CASE B: 🔥 CORRECTED SECURITY FIREWALL FOR UN-AUTHENTICATED STRREAMS ---
+    // --- CASE B: UNAUTHENTICATED USER GATEKEEPING ---
     if (!isAuthenticated) {
-      // Rule 1: If they explicitly chose Guest Mode, let them browse the public search catalog
+      // Rule 1: If the users explicitly chose Guest Mode, we let them browse the public search catalog
       if (currentRole === "guest") {
         if (pathname !== "/search-property") {
           router.replace("/search-property" as any);
@@ -68,7 +66,7 @@ function RootLayoutContent() {
         pathname.startsWith("/signin") ||
         pathname === "/debug-screen";
       if (!isPublicAuthArea) {
-        router.replace("/welcome-screen" as any); // 🛡️ Securely anchors them to the front door
+        router.replace("/welcome-screen" as any);
       }
       return;
     }
@@ -82,7 +80,7 @@ function RootLayoutContent() {
     }
 
     // --- CASE D: FULLY AUTHENTICATED CORE EXPERIENCE GATEWAY ---
-    // If they are hanging around on the landing screens, push them straight into dashboard tabs
+
     if (
       pathname === "/welcome-screen" ||
       pathname.startsWith("/signin") ||
@@ -105,14 +103,17 @@ function RootLayoutContent() {
     active: isAuthenticated,
   });
 
-  if (isInitializing) return null;
+  const roleContextValue = useMemo<RoleContextType>(
+    () => ({
+      currentRole,
+      setCurrentRole: (role: UserRole | "guest") => dispatch(setRole(role)),
+      isDrawerOpen,
+      setIsDrawerOpen,
+    }),
+    [currentRole, dispatch, isDrawerOpen],
+  );
 
-  const roleContextValue: RoleContextType = {
-    currentRole,
-    setCurrentRole: (role: UserRole | "guest") => dispatch(setRole(role)),
-    isDrawerOpen,
-    setIsDrawerOpen,
-  };
+  if (isInitializing) return null;
 
   return (
     <RoleContext.Provider value={roleContextValue}>
@@ -122,6 +123,50 @@ function RootLayoutContent() {
           <Stack.Screen name="(auth)/signin" />
           <Stack.Screen name="(auth)/init-screen" />
           <Stack.Screen name="(tabs)" />
+
+          <Stack.Screen
+            name="tutorials"
+            options={{
+              headerShown: true,
+              title: "Tutorials",
+              headerStyle: { backgroundColor: "#1c2431" },
+              headerTintColor: "#ffffff",
+              headerShadowVisible: false,
+            }}
+          />
+
+          <Stack.Screen
+            name="tutorial/[id]"
+            options={{
+              headerShown: true,
+              title: "Tutorial",
+              headerStyle: { backgroundColor: "#1c2431" },
+              headerTintColor: "#ffffff",
+              headerShadowVisible: false,
+            }}
+          />
+
+          <Stack.Screen
+            name="privacy-policy"
+            options={{
+              headerShown: true,
+              title: "Privacy policy",
+              headerStyle: { backgroundColor: "#1c2431" },
+              headerTintColor: "#ffffff",
+              headerShadowVisible: false,
+            }}
+          />
+
+          <Stack.Screen
+            name="feedback"
+            options={{
+              headerShown: true,
+              title: "Feedback",
+              headerStyle: { backgroundColor: "#1c2431" },
+              headerTintColor: "#ffffff",
+              headerShadowVisible: false,
+            }}
+          />
         </Stack>
         {locked && <LockScreen onUnlock={unlock} />}
       </View>

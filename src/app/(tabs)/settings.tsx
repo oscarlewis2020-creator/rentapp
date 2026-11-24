@@ -1,18 +1,21 @@
 // app/(tabs)/settings.tsx
+import { toastBus } from "@/constants/toastBus";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
+  Linking,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Switch } from "react-native-paper";
+import { Snackbar, Switch } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Central Hooks and Actions
@@ -20,15 +23,20 @@ import { useAppDispatch, useAppSelector } from "../../hooks";
 import { logOutUser } from "../../store/authSlice";
 
 // Shared Reusable UI Components
+import { SOCIALS_URL, WEBSITE_URL } from "@/constants/links";
 import BiometricsSettings from "../../components/ui/settings/BiometricsSettings";
+import ConfirmDialog from "../../components/ui/settings/ConfirmDialog";
 import { ConfirmSignOutModal } from "../../components/ui/settings/ConfirmSignoutModal";
+import HelpCenterDialog from "../../components/ui/settings/HelpCenterDialog";
 import { ProfileHeader } from "../../components/ui/settings/ProfileHeader";
 import { SettingsItem } from "../../components/ui/settings/SettingsItem";
+import { useRefreshData } from "../../components/ui/settings/UseRefreshData";
 
 export default function GenericSettingsScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { currentRole } = useAppSelector((state) => state.role);
+  const refresh = useRefreshData();
 
   // Toggle state trackers
   const [isDefaultUser, setIsDefaultUser] = useState(true);
@@ -37,11 +45,40 @@ export default function GenericSettingsScreen() {
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
   const [showBiometrics, setShowBiometrics] = useState(false);
   const [biometricTimeout, setBiometricTimeout] = useState<number | null>(null);
+  const [biometricError, setBiometricError] = useState<string | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const openLink = async (label: string, url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.log(`Error opening ${label}:`, error);
+      setLinkError(`Couldn't open the ${label}. Please try again later.`);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const message = toastBus.consume();
+      if (message) setFeedbackToast(message);
+    }, []),
+  );
+
+  useEffect(() => {
+    return toastBus.subscribe((message) => {
+      if (message) {
+        toastBus.consume();
+        setFeedbackToast(message);
+      }
+    });
+  }, []);
 
   // Making the biometrics stored value the single source of truth
   useEffect(() => {
     if (Platform.OS === "web") return; // Web does not support SecureStore
-    (async () => {
+    void (async () => {
       try {
         const enabled = await SecureStore.getItemAsync("biometrics_enabled");
         const timeout = await SecureStore.getItemAsync("biometrics_timeout");
@@ -71,7 +108,7 @@ export default function GenericSettingsScreen() {
           promptMessage: "Confirm to disable RentHub biometrics",
           cancelLabel: "Cancel",
         });
-        if (!result.success) return; // switch stays on
+        if (!result.success) return;
       }
 
       await SecureStore.deleteItemAsync("biometrics_enabled");
@@ -79,8 +116,10 @@ export default function GenericSettingsScreen() {
       setIsBiometricSecure(false);
       setBiometricTimeout(null);
     } catch (error) {
+      // console.log("Error disabling biometrics:", error);
+      // Alert.alert("Error", "Unable to disable biometric authentication.");
       console.log("Error disabling biometrics:", error);
-      Alert.alert("Error", "Unable to disable biometric authentication.");
+      setBiometricError("Unable to disable biometric authentication.");
     }
   };
 
@@ -109,7 +148,7 @@ export default function GenericSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 💡 FIXED TOP LAYER: Profile Header stays anchored here outside the ScrollView */}
+      {/* FIXED TOP LAYER: Profile Header stays anchored here outside the ScrollView */}
       <View style={styles.stickyHeaderContainer}>
         <ProfileHeader
           name="Stanley Brandon"
@@ -188,12 +227,12 @@ export default function GenericSettingsScreen() {
               />
             }
             label="Manage notifications"
-            onPress={() => console.log("Open notify settings")}
+            onPress={() => router.push("/manage-notifications" as any)}
           />
           <SettingsItem
             icon={<Ionicons name="refresh-outline" size={22} color="#85C1E9" />}
             label="Refresh data"
-            onPress={() => console.log("Refresh app records cache")}
+            onPress={refresh.openDialog}
           />
         </View>
 
@@ -203,19 +242,19 @@ export default function GenericSettingsScreen() {
           <SettingsItem
             icon={<Ionicons name="school-outline" size={22} color="#85C1E9" />}
             label="Tutorials"
-            onPress={() => console.log("Open tutorials")}
+            onPress={() => router.push("/tutorials" as any)}
           />
           <SettingsItem
             icon={<Ionicons name="chatbox-outline" size={22} color="#85C1E9" />}
             label="Share feedback"
-            onPress={() => console.log("Open feedback form")}
+            onPress={() => router.push("/feedback" as any)}
           />
           <SettingsItem
             icon={
               <Ionicons name="help-circle-outline" size={22} color="#85C1E9" />
             }
             label="Help center"
-            onPress={() => console.log("Open help links")}
+            onPress={() => setHelpVisible(true)}
           />
           <SettingsItem
             icon={
@@ -226,17 +265,17 @@ export default function GenericSettingsScreen() {
               />
             }
             label="Privacy policy"
-            onPress={() => console.log("Open legal texts")}
+            onPress={() => router.push("/privacy-policy" as any)}
           />
           <SettingsItem
             icon={<Ionicons name="globe-outline" size={22} color="#85C1E9" />}
             label="Website"
-            onPress={() => console.log("Launch portal website")}
+            onPress={() => void openLink("website", WEBSITE_URL)}
           />
           <SettingsItem
             icon={<Ionicons name="link-outline" size={22} color="#85C1E9" />}
             label="Our Socials"
-            onPress={() => console.log("Display social networks")}
+            onPress={() => void openLink("socials page", SOCIALS_URL)}
           />
         </View>
 
@@ -282,7 +321,7 @@ export default function GenericSettingsScreen() {
 
         <Text style={styles.versionText}>Rent Hub 2.5.3 (137)</Text>
       </ScrollView>
-      {/* 💡 INJECT CONTEXTUAL CONFIRM SIGN OUT OVERLAY MODAL SHEET HERE */}
+      {/* INJECT CONTEXTUAL CONFIRM SIGN OUT OVERLAY MODAL SHEET HERE */}
       <ConfirmSignOutModal
         visible={signOutModalVisible}
         onClose={() => setSignOutModalVisible(false)}
@@ -301,6 +340,80 @@ export default function GenericSettingsScreen() {
         }}
         onClose={() => setShowBiometrics(false)}
       />
+
+      <ConfirmDialog
+        visible={refresh.dialogVisible}
+        title="Confirm refresh"
+        message="Refreshing will fetch the latest data from the server and sync it with your local data. Do you want to proceed?"
+        confirmLabel="Proceed"
+        cancelLabel="Cancel"
+        onConfirm={refresh.handleRefresh}
+        onCancel={() => refresh.closeDialog()}
+      />
+
+      <Modal
+        visible={refresh.refreshing}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.refreshOverlay}>
+          <View style={styles.refreshCard}>
+            <ActivityIndicator size="large" color="#75CCF5" />
+            <Text style={styles.refreshText}>Syncing data</Text>
+          </View>
+        </View>
+      </Modal>
+
+      <ConfirmDialog
+        visible={biometricError !== null}
+        title="Error"
+        message={biometricError ?? ""}
+        confirmLabel="OK"
+        onConfirm={() => setBiometricError(null)}
+        onCancel={() => setBiometricError(null)}
+      />
+
+      <HelpCenterDialog
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+      />
+
+      <ConfirmDialog
+        visible={linkError !== null}
+        title="Couldn't open link"
+        message={linkError ?? ""}
+        confirmLabel="OK"
+        onConfirm={() => setLinkError(null)}
+        onCancel={() => setLinkError(null)}
+      />
+
+      <Snackbar
+        visible={refresh.toast !== null}
+        onDismiss={() => refresh.dismissToast()}
+        duration={3000}
+        style={styles.snackbar}
+        action={{
+          label: "✕",
+          onPress: () => refresh.dismissToast(),
+          textColor: "#1B2A34",
+        }}
+      >
+        <Text style={styles.snackbarText}>{refresh.toast}</Text>
+      </Snackbar>
+      <Snackbar
+        visible={feedbackToast !== null}
+        onDismiss={() => setFeedbackToast(null)}
+        duration={3000}
+        style={styles.snackbar}
+        action={{
+          label: "✕",
+          onPress: () => setFeedbackToast(null),
+          textColor: "#1B2A34",
+        }}
+      >
+        <Text style={styles.snackbarText}>{feedbackToast}</Text>
+      </Snackbar>
     </SafeAreaView>
   );
 }
@@ -316,8 +429,8 @@ const styles = StyleSheet.create({
   stickyHeaderContainer: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: "#121824", // Blends with parent context canvas background color
-    zIndex: 20, // Forces stack composition on top of scrolling lists on web browsers
+    backgroundColor: "#121824",
+    zIndex: 20,
   },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
   sectionTitle: {
@@ -344,4 +457,26 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 16,
   },
+
+  refreshOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  refreshCard: {
+    backgroundColor: "#222F37",
+    borderRadius: 28,
+    paddingHorizontal: 36,
+    paddingVertical: 28,
+    alignItems: "center",
+    gap: 16,
+  },
+  refreshText: { color: "#EAECEE", fontSize: 18 },
+  snackbar: {
+    backgroundColor: "#7DD3FF",
+    marginHorizontal: 16,
+    borderRadius: 8,
+  },
+  snackbarText: { color: "#1B2A34", fontSize: 16 },
 });

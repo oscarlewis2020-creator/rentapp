@@ -1,9 +1,15 @@
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
+// cspell:ignore backgrounded
 
-export function useBiometricLock() {
+interface Options {
+  ready: boolean;
+  active: boolean;
+}
+
+export function useBiometricLock({ ready, active }: Options) {
   // Start locked so app content never flashes before we've checked the setting
   const [locked, setLocked] = useState(true);
 
@@ -14,6 +20,11 @@ export function useBiometricLock() {
   useEffect(() => {
     lockedRef.current = locked;
   }, [locked]);
+
+  const activeRef = useRef(active);
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
 
   const unlock = useCallback(async () => {
     if (authenticating.current) return;
@@ -29,8 +40,6 @@ export function useBiometricLock() {
         return;
       }
 
-      // The device has no biometrics or passcode anymore, so the user could
-      // never pass the prompt. Disable the lock instead of trapping them.
       if (
         result.error === "not_enrolled" ||
         result.error === "passcode_not_set"
@@ -47,13 +56,23 @@ export function useBiometricLock() {
     }
   }, []);
 
-  // Cold start: lock if biometrics are enabled
+  // Cold start: lock only once we know the auth state and the user is signed in
   useEffect(() => {
-    (async () => {
+    if (Platform.OS === "web") {
+      setLocked(false);
+      return;
+    }
+
+    if (!ready) return;
+    if (!active) {
+      setLocked(false);
+      return;
+    }
+    void (async () => {
       try {
         const enabled = await SecureStore.getItemAsync("biometrics_enabled");
         if (enabled === "true") {
-          unlock();
+          void unlock();
         } else {
           setLocked(false);
         }
@@ -62,7 +81,7 @@ export function useBiometricLock() {
         setLocked(false);
       }
     })();
-  }, [unlock]);
+  }, [ready, active, unlock]);
 
   // Returning from the background after longer than the chosen timeout
   useEffect(() => {
@@ -85,9 +104,13 @@ export function useBiometricLock() {
             (await SecureStore.getItemAsync("biometrics_timeout")) ?? 5,
           );
 
-          if (enabled === "true" && elapsed >= timeout * 1000) {
+          if (
+            enabled === "true" &&
+            activeRef.current &&
+            elapsed >= timeout * 1000
+          ) {
             setLocked(true);
-            unlock();
+            void unlock();
           }
         } catch (error) {
           console.log("Error checking auto-lock:", error);

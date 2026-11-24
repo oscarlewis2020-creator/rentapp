@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
-  Alert,
+  // Alert,
   Modal,
   StyleSheet,
   // Switch,
@@ -13,6 +13,14 @@ import {
 
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
+import ConfirmDialog from "./ConfirmDialog";
+
+import { colors, type } from "@/constants/typography";
+import {
+  DIALOG_ACCENT,
+  DIALOG_HIT_SLOP,
+  dialogStyles as s,
+} from "./dialogStyles";
 
 interface Props {
   visible: boolean;
@@ -32,6 +40,16 @@ export default function BiometricsSettings({
   const [selectedTime, setSelectedTime] = useState(5);
   const [loading, setLoading] = useState(false);
 
+  const [message, setMessage] = useState<{
+    title: string;
+    text: string;
+  } | null>(null);
+
+  // Show after the biometrics modal has finished closing, so two modals never overlap
+  const showMessage = (title: string, text: string) => {
+    setTimeout(() => setMessage({ title, text }), 300);
+  };
+
   useEffect(() => {
     if (!visible) return;
     const loadSettings = async () => {
@@ -43,7 +61,7 @@ export default function BiometricsSettings({
         console.log("Error loading biometric settings:", error);
       }
     };
-    loadSettings();
+    void loadSettings();
   }, [visible]);
 
   // Enable biometric authentication
@@ -54,17 +72,20 @@ export default function BiometricsSettings({
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
 
       if (!hasHardware) {
-        Alert.alert(
+        onClose();
+        showMessage(
           "Unavailable",
           "Your device does not support biometric authentication.",
         );
+
         return;
       }
 
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
       if (!isEnrolled) {
-        Alert.alert(
+        onClose();
+        showMessage(
           "No Biometrics Registered",
           "Please register your fingerprint or face in your device settings.",
         );
@@ -92,14 +113,16 @@ export default function BiometricsSettings({
       onEnabled(selectedTime);
       onClose();
 
-      Alert.alert(
+      showMessage(
         "Success",
         isEnabled
           ? "Auto-lock time updated!"
           : "Biometric authentication enabled successfully!",
       );
     } catch (error) {
-      Alert.alert(
+      console.log("Error enabling biometrics:", error);
+      onClose();
+      showMessage(
         "Authentication Error",
         "Unable to enable biometric authentication.",
       );
@@ -110,21 +133,19 @@ export default function BiometricsSettings({
 
   return (
     <>
-      {/* Biometric Activation Modal */}
-
       <Modal
         visible={visible}
         transparent
         animationType="fade"
         onRequestClose={onClose}
       >
-        <View style={styles.overlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
+        <View style={s.overlay}>
+          <View style={s.container}>
+            <Text style={s.title}>
               {isEnabled ? "Auto-lock time" : "Enable Biometrics"}
             </Text>
 
-            <Text style={styles.description}>
+            <Text style={s.message}>
               {isEnabled
                 ? "Choose how long RentHub can stay in the background before it locks."
                 : "Would you like to enable biometric authentication to lock RentHub for enhanced security? When enabled, you'll need to use fingerprint, face or other unique identifiers to open RentHub."}
@@ -147,21 +168,28 @@ export default function BiometricsSettings({
                 >
                   {selectedTime === time && <View style={styles.radioInner} />}
                 </View>
-
                 <Text style={styles.optionText}>{time} seconds</Text>
               </TouchableOpacity>
             ))}
 
-            <View style={styles.buttons}>
-              <TouchableOpacity disabled={loading} onPress={() => onClose()}>
-                <Text style={styles.cancelText}>Cancel</Text>
+            <View style={s.buttons}>
+              <TouchableOpacity
+                disabled={loading}
+                onPress={onClose}
+                hitSlop={DIALOG_HIT_SLOP}
+              >
+                <Text style={s.actionText}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity disabled={loading} onPress={enableBiometrics}>
+              <TouchableOpacity
+                disabled={loading}
+                onPress={enableBiometrics}
+                hitSlop={DIALOG_HIT_SLOP}
+              >
                 {loading ? (
-                  <ActivityIndicator color="#75CCF5" />
+                  <ActivityIndicator color={DIALOG_ACCENT} />
                 ) : (
-                  <Text style={styles.proceedText}>
+                  <Text style={s.actionText}>
                     {isEnabled ? "Save" : "Proceed"}
                   </Text>
                 )}
@@ -170,96 +198,42 @@ export default function BiometricsSettings({
           </View>
         </View>
       </Modal>
+
+      <ConfirmDialog
+        visible={message !== null}
+        title={message?.title ?? ""}
+        message={message?.text ?? ""}
+        confirmLabel="OK"
+        onConfirm={() => setMessage(null)}
+        onCancel={() => setMessage(null)}
+      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-
-  modalContainer: {
-    width: "100%",
-    maxWidth: 450,
-    backgroundColor: "#223138",
-    borderRadius: 45,
-    paddingHorizontal: 30,
-    paddingVertical: 45,
-  },
-
-  modalTitle: {
-    color: "#EAECEE",
-    fontSize: 30,
-    textAlign: "center",
-    marginBottom: 40,
-  },
-
-  description: {
-    color: "#E1E5E7",
-    fontSize: 17,
-    lineHeight: 27,
-    marginBottom: 25,
-  },
-
   sectionTitle: {
-    color: "#FFFFFF",
-    fontSize: 17,
+    ...type.body,
+    color: colors.textPrimary,
     marginBottom: 20,
   },
-
-  option: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 25,
-  },
-
+  option: { flexDirection: "row", alignItems: "center", marginBottom: 25 },
   radioOuter: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: "#B5C2C8",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.radioBorder,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 18,
+    marginRight: 16,
   },
-
-  radioSelected: {
-    borderColor: "#75CCF5",
-  },
-
+  radioSelected: { borderColor: colors.accent },
   radioInner: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#75CCF5",
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.accent,
   },
-
-  optionText: {
-    color: "#E1E5E7",
-    fontSize: 17,
-  },
-
-  buttons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: 45,
-    marginTop: 35,
-  },
-
-  cancelText: {
-    color: "#75CCF5",
-    fontSize: 17,
-  },
-
-  proceedText: {
-    color: "#75CCF5",
-    fontSize: 17,
-  },
+  optionText: { ...type.body, color: colors.textPrimary },
 });

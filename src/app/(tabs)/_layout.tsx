@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.tsx
 import { useGlobalNavigation } from "@/context/NavigationContext";
 import { Ionicons } from "@expo/vector-icons"; // 💡 Using standard Ionicons for crisp uniform styling
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { useEffect } from "react";
 import {
   Platform,
@@ -14,11 +14,19 @@ import DrawerMenu from "../../components/global/DrawerMenu";
 import { useAppSelector } from "../../hooks";
 import { useUserRole } from "../_layout";
 
+const ROUTE_TITLES: Record<string, string> = {
+  chat: "Chat",
+  settings: "Settings",
+  tutorials: "Tutorials",
+};
+
 export default function TabsLayout() {
   const { setIsDrawerOpen, currentRole } = useUserRole();
   const { isAuthenticated, isInitializing } = useAppSelector(
     (state) => state.auth,
   );
+  const pathname = usePathname();
+  const onTutorials = pathname === "/tutorials";
 
   // const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
@@ -55,14 +63,17 @@ export default function TabsLayout() {
     return null;
   }
 
-  // 💡 Platform-Agnostic Title Formatter Evaluator
+  //  Platform-Agnostic Title Formatter Evaluator
   const getDynamicHeaderTitle = (routeTitle: string) => {
     if (routeTitle === "notification") {
       return "Notification";
     }
 
+    // if (routeTitle !== "Home") {
+    //   return routeTitle; // Standard tab fallback titles (Chat, Settings)
+    // }
     if (routeTitle !== "Home") {
-      return routeTitle; // Standard tab fallback titles (Chat, Settings)
+      return ROUTE_TITLES[routeTitle] ?? routeTitle;
     }
 
     // Dynamic Title Mapping Matrix for Landlord Home Sub-Dashboards
@@ -109,6 +120,7 @@ export default function TabsLayout() {
       <DrawerMenu />
 
       <Tabs
+        backBehavior="history"
         screenOptions={({ route }) => ({
           tabBarActiveTintColor: "#007AFF",
           tabBarInactiveTintColor: "#8E8E93",
@@ -120,7 +132,7 @@ export default function TabsLayout() {
           },
           headerTintColor: "#ffffff",
 
-          // 💡 PERSISTENT LEFT DRAWER ICON WITH DYNAMIC TEXT NEXT TO IT
+          // PERSISTENT LEFT DRAWER ICON WITH DYNAMIC TEXT NEXT TO IT
           headerLeft: () => (
             <View style={styles.headerLeftGroup}>
               <TouchableOpacity
@@ -138,7 +150,7 @@ export default function TabsLayout() {
             </View>
           ),
 
-          // 💡 PERSISTENT RIGHT-ALIGNED NOTIFICATION AND PROFILE CONTAINER
+          // PERSISTENT RIGHT-ALIGNED NOTIFICATION AND PROFILE CONTAINER
           headerRight: () => (
             <View style={styles.headerRightGroup}>
               <TouchableOpacity
@@ -168,7 +180,7 @@ export default function TabsLayout() {
           headerTitle: () => null,
         })}
       >
-        {/* 💡 Added Home icon */}
+        {/* Added Home icon */}
         <Tabs.Screen
           name="index"
           options={{
@@ -183,7 +195,7 @@ export default function TabsLayout() {
           }}
         />
 
-        {/* 💡 Added Chat/Messages icon */}
+        {/* Added Chat/Messages icon */}
         <Tabs.Screen
           name="chat"
           options={{
@@ -198,11 +210,13 @@ export default function TabsLayout() {
           }}
         />
 
-        {/* 💡 Added Settings icon */}
+        {/* Added Settings icon */}
         <Tabs.Screen
           name="settings"
           options={{
             title: "Settings",
+            // While Tutorials is open, Settings isn't the focused tab, so borrow the active color
+            tabBarInactiveTintColor: onTutorials ? "#007AFF" : "#8E8E93",
             tabBarIcon: ({ color, size }) => (
               <Ionicons
                 name="settings-outline"
@@ -212,6 +226,8 @@ export default function TabsLayout() {
             ),
           }}
         />
+
+        <Tabs.Screen name="tutorials" options={{ href: null }} />
       </Tabs>
     </View>
   );
