@@ -1,8 +1,10 @@
 // components/roles/landlord/BuildingFormScreen.tsx
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -79,6 +81,7 @@ export function BuildingFormScreen({
     useState(false);
   const [showLocationWarning, setShowLocationWarning] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [isPickingMedia, setIsPickingMedia] = useState(false);
 
   // Rehydrate the form when the selected building or mode changes.
   useEffect(() => {
@@ -108,6 +111,96 @@ export function BuildingFormScreen({
         : "Building Amenities",
     [form.selectedAmenities],
   );
+
+  const showNotice = (title: string, message: string) => {
+    if (Platform.OS === "web") {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const handlePickImages = async () => {
+    if (isPickingMedia) return;
+    setIsPickingMedia(true);
+
+    try {
+      if (Platform.OS !== "web") {
+        const permission =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          showNotice(
+            "Permission required",
+            "Allow photo library access to select building pictures.",
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: true,
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUris = result.assets.map((asset) => asset.uri);
+        setForm((current) => ({
+          ...current,
+          imageUris: Array.from(new Set([...current.imageUris, ...newUris])),
+        }));
+      }
+    } catch (error) {
+      console.error("Building image picker error:", error);
+      showNotice("Picker error", "Could not open the photo library.");
+    } finally {
+      setIsPickingMedia(false);
+    }
+  };
+
+  const handleOpenCamera = async () => {
+    if (isPickingMedia) return;
+    setIsPickingMedia(true);
+
+    try {
+      if (Platform.OS !== "web") {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          showNotice(
+            "Permission required",
+            "Allow camera access to take building pictures.",
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const capturedUri = result.assets[0].uri;
+        setForm((current) => ({
+          ...current,
+          imageUris: Array.from(new Set([...current.imageUris, capturedUri])),
+        }));
+      }
+    } catch (error) {
+      console.error("Building camera error:", error);
+      showNotice("Camera error", "Could not launch the camera.");
+    } finally {
+      setIsPickingMedia(false);
+    }
+  };
+
+  const handleRemoveImage = (uriToRemove: string) => {
+    setForm((current) => ({
+      ...current,
+      imageUris: current.imageUris.filter((uri) => uri !== uriToRemove),
+    }));
+  };
 
   const handleSubmit = async () => {
     setSubmitAttempted(true);
@@ -415,19 +508,16 @@ export function BuildingFormScreen({
             </TouchableOpacity>
           </View>
 
-          {/* Images - picker wiring is intentionally left to the app's chosen image-picker flow */}
-          <View style={styles.imageSection}>
+          {/* Images */}
+          <View style={styles.imageSectionCard}>
             <Text style={styles.galleryHeadline}>Attach Pictures</Text>
+
             <View style={styles.mediaButtonsRow}>
               <TouchableOpacity
                 style={styles.mediaPickerBtn}
                 activeOpacity={0.75}
-                onPress={() =>
-                  Alert.alert(
-                    "Image picker",
-                    "Connect this button to your Expo ImagePicker flow to select building photos.",
-                  )
-                }
+                disabled={isPickingMedia}
+                onPress={handlePickImages}
               >
                 <Ionicons
                   name="image-outline"
@@ -436,28 +526,44 @@ export function BuildingFormScreen({
                 />
                 <Text style={styles.mediaBtnText}>Pick image(s)</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.mediaPickerBtn}
-                activeOpacity={0.75}
-                onPress={() =>
-                  Alert.alert(
-                    "Camera",
-                    "Connect this button to your Expo ImagePicker camera flow to take building photos.",
-                  )
-                }
-              >
-                <Ionicons
-                  name="camera-outline"
-                  size={19}
-                  color={COLORS.accent}
-                />
-                <Text style={styles.mediaBtnText}>Open camera</Text>
-              </TouchableOpacity>
+
+              {Platform.OS !== "web" && (
+                <TouchableOpacity
+                  style={styles.mediaPickerBtn}
+                  activeOpacity={0.75}
+                  disabled={isPickingMedia}
+                  onPress={handleOpenCamera}
+                >
+                  <Ionicons
+                    name="camera-outline"
+                    size={19}
+                    color={COLORS.accent}
+                  />
+                  <Text style={styles.mediaBtnText}>Open camera</Text>
+                </TouchableOpacity>
+              )}
             </View>
+
             {form.imageUris.length > 0 && (
-              <Text style={styles.helperNoteLabel}>
-                {form.imageUris.length} building photo(s) attached
-              </Text>
+              <View style={styles.previewList}>
+                {form.imageUris.map((uri) => (
+                  <View key={uri} style={styles.attachedPillRow}>
+                    <Image
+                      source={{ uri }}
+                      style={styles.previewThumbnail}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      style={styles.trashIconBtn}
+                      activeOpacity={0.8}
+                      onPress={() => handleRemoveImage(uri)}
+                      accessibilityLabel="Remove building photo"
+                    >
+                      <Ionicons name="trash" size={18} color="#171D20" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
             )}
           </View>
 
@@ -705,10 +811,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     lineHeight: 21,
   },
-  imageSection: { gap: 12 },
+  imageSectionCard: {
+    borderWidth: 1.2,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    backgroundColor: COLORS.field,
+    gap: 14,
+  },
   galleryHeadline: {
     color: COLORS.text,
-    fontSize: 15,
+    fontSize: 16,
+    fontWeight: "500",
     textAlign: "center",
   },
   mediaButtonsRow: { flexDirection: "row", gap: 12 },
@@ -725,6 +840,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   mediaBtnText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
+
   leaseTermsBtn: {
     width: "100%",
     minHeight: 62,
@@ -735,6 +851,41 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 14,
   },
+  previewList: {
+    gap: 10,
+    marginTop: 2,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  attachedPillRow: {
+    width: "48.5%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1.2,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.field,
+  },
+  previewThumbnail: {
+    width: 78,
+    height: 54,
+    borderRadius: 10,
+    backgroundColor: "#262B31",
+  },
+  trashIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#D9827B",
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+
   leaseBtnText: { color: COLORS.accent, fontSize: 17, fontWeight: "600" },
   checkboxRow: {
     flexDirection: "row",

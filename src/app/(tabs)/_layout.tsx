@@ -2,7 +2,7 @@
 import { useGlobalNavigation } from "@/context/NavigationContext";
 import { Ionicons } from "@expo/vector-icons"; // 💡 Using standard Ionicons for crisp uniform styling
 import { Tabs, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Platform,
   StyleSheet,
@@ -19,7 +19,7 @@ export default function TabsLayout() {
   const { isAuthenticated, isInitializing } = useAppSelector(
     (state) => state.auth,
   );
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  // const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
 
   // 💡 Redux state hooks to read active sub-dashboard layout state dynamically
@@ -88,6 +88,12 @@ export default function TabsLayout() {
         return selectedApplicantName
           ? `${selectedApplicantName} Details`
           : "Applicant Details";
+      case "mpesa_payment":
+        return "Mpesa payment";
+      case "payment_details":
+      case "upload_receipt_payment":
+      case "cash_payment_details":
+        return "Payment Details";
       case "permissions":
         return "Permissions";
       case "wallets":

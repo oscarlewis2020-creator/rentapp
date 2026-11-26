@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   Alert,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -92,7 +93,7 @@ export function LandlordAddUnitScreen({
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsMultipleSelection: true,
       quality: 0.8,
     });
@@ -326,13 +327,19 @@ export function LandlordAddUnitScreen({
               <Text style={styles.mediaBtnText}>Pick image(s)</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.mediaBtn}
-              onPress={handleOpenCamera}
-            >
-              <MaterialCommunityIcons name="camera" size={18} color="#7DD3FC" />
-              <Text style={styles.mediaBtnText}>Open camera</Text>
-            </TouchableOpacity>
+            {Platform.OS !== "web" && (
+              <TouchableOpacity
+                style={styles.mediaBtn}
+                onPress={handleOpenCamera}
+              >
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={18}
+                  color="#7DD3FC"
+                />
+                <Text style={styles.mediaBtnText}>Open camera</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Image Previews inside the box */}

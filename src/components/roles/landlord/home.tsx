@@ -615,7 +615,14 @@ export function LandlordHome() {
     );
   }
 
-  if (currentSubDashboard === "unit_details" && activeUnit) {
+  const isUnitOrLeasePaymentView =
+    currentSubDashboard === "unit_details" ||
+    currentSubDashboard === "mpesa_payment" ||
+    currentSubDashboard === "payment_details" ||
+    currentSubDashboard === "upload_receipt_payment" ||
+    currentSubDashboard === "cash_payment_details";
+
+  if (isUnitOrLeasePaymentView && activeUnit) {
     return (
       <LandlordUnitDetailsScreen
         unit={activeUnit}

@@ -30,15 +30,24 @@ export type DashboardState =
   | "apply_lease"
   | "edit_unit"
   | "unit_details"
-  | "lease_application_details";
+  | "lease_application_details"
+  | "mpesa_payment"
+  | "payment_details"
+  | "upload_receipt_payment"
+  | "cash_payment_details";
+
+export type PaymentSubFlow = "upload_receipt" | "lipa_na_mpesa" | "cash" | null;
 
 interface NavigationContextType {
   currentSubDashboard: DashboardState;
   selectedBuildingName: string;
   selectedUnitName: string;
   selectedApplicantName: string;
+  // activePaymentFlow: PaymentSubFlow;
   navigateToSubDashboard: (nextState: DashboardState) => void;
   navigateBack: () => void;
+  // openPaymentSubFlow: (flow: Exclude<PaymentSubFlow, null>) => void;
+  // closePaymentSubFlow: () => void;
   updateBuildingName: (name: string) => void;
   updateUnitName: (name: string) => void;
   updateApplicantName: (name: string) => void;
@@ -53,7 +62,19 @@ const TRANSIENT_VIEWS: DashboardState[] = [
   "add_unit",
   "apply_lease",
   "lease_application_details",
+  "mpesa_payment",
+  "payment_details",
+  "upload_receipt_payment",
+  "cash_payment_details",
 ];
+
+// function paymentFlowFromState(state: DashboardState): PaymentSubFlow {
+//   if (state === "mpesa_payment") return "lipa_na_mpesa";
+//   if (state === "upload_receipt_payment") return "upload_receipt";
+//   if (state === "cash_payment_details") return "cash";
+//   if (state === "payment_details") return "upload_receipt";
+//   return null;
+// }
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   // 💡 1. Evaluator: Safely reads the '?view=' parameter from the address bar on Web load
@@ -70,6 +91,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const [currentSubDashboard, setCurrentSubDashboard] =
     useState<DashboardState>(getInitialWebState());
+
+  // const [activePaymentFlow, setActivePaymentFlow] = useState<PaymentSubFlow>(
+  //   () => paymentFlowFromState(getInitialWebState()),
+  // );
+
   // 💡 Initialize deep stack reconstruction matrices on load
   const [historyStack, setHistoryStack] = useState<DashboardState[]>(() => {
     const initial = getInitialWebState();
@@ -89,8 +115,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   });
   const [selectedBuildingName, setSelectedBuildingName] = useState("Dashboard");
   const [selectedUnitName, setSelectedUnitName] = useState("");
-
   const [selectedApplicantName, setSelectedApplicantName] = useState("");
+
+  // const syncPaymentFlowWithState = (nextState: DashboardState) => {
+  //   setActivePaymentFlow(paymentFlowFromState(nextState));
+  // };
 
   // 💡 2. Navigation Core: Updates state and dynamically writes '?view=' query params to Web address bar
   const navigateToSubDashboard = (nextState: DashboardState) => {
@@ -100,6 +129,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     const nextStack = [...historyStack, nextState];
     setHistoryStack(nextStack);
     setCurrentSubDashboard(nextState);
+    // syncPaymentFlowWithState(nextState);
 
     if (Platform.OS === "web" && window.history) {
       const url =
@@ -116,6 +146,38 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // const openPaymentSubFlow = useCallback(
+  //   (flow: Exclude<PaymentSubFlow, null>) => {
+  //     const targetState: DashboardState =
+  //       flow === "lipa_na_mpesa"
+  //         ? "mpesa_payment"
+  //         : flow === "cash"
+  //           ? "cash_payment_details"
+  //           : "upload_receipt_payment";
+
+  //     setActivePaymentFlow(flow);
+  //     setHistoryStack((prev) => [...prev, targetState]);
+  //     setCurrentSubDashboard(targetState);
+  //   },
+  //   [],
+  // );
+
+  // const closePaymentSubFlow = useCallback(() => {
+  //   setActivePaymentFlow(null);
+  //   setHistoryStack((prevStack) => {
+  //     if (prevStack.length <= 1) {
+  //       setCurrentSubDashboard("base");
+  //       return ["base"];
+  //     }
+  //     const updatedStack = [...prevStack];
+  //     updatedStack.pop();
+  //     const previous = updatedStack[updatedStack.length - 1] || "base";
+  //     setCurrentSubDashboard(previous);
+  //     setActivePaymentFlow(paymentFlowFromState(previous));
+  //     return updatedStack;
+  //   });
+  // }, []);
+
   // 💡 3. Backward Navigation: Pops items and corrects the browser parameter string
   const navigateBack = useCallback(() => {
     setHistoryStack((prevStack) => {
@@ -127,6 +189,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         updatedStack[updatedStack.length - 1] || "base";
 
       setCurrentSubDashboard(targetPreviousState);
+      // syncPaymentFlowWithState(targetPreviousState);
 
       if (Platform.OS === "web" && window.history) {
         const url =
@@ -161,10 +224,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       if (event.state && event.state.stack) {
         setHistoryStack(event.state.stack);
         setCurrentSubDashboard(event.state.screen);
+        // syncPaymentFlowWithState(event.state.screen);
       } else {
         const params = new URLSearchParams(window.location.search);
         const urlView = (params.get("view") as DashboardState) || "base";
         setCurrentSubDashboard(urlView);
+        // syncPaymentFlowWithState(urlView);
 
         if (urlView === "unit_performance")
           setHistoryStack(["base", "analytics", "unit_performance"]);
@@ -203,7 +268,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         currentSubDashboard,
         selectedBuildingName,
         selectedUnitName,
+        // activePaymentFlow,
         navigateToSubDashboard,
+        // openPaymentSubFlow,
+        // closePaymentSubFlow,
         navigateBack,
         updateBuildingName,
         updateUnitName,

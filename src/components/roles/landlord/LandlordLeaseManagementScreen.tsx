@@ -1,6 +1,6 @@
 // components/roles/landlord/LandlordLeaseManagementScreen.tsx
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -11,8 +11,11 @@ import {
 import { Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { LandlordCashPaymentDetailsScreen } from "./LandlordCashPaymentDetailsScreen";
 import { LandlordLeaseNotesScreen } from "./LandlordLeaseNotesScreen";
+import { LandlordLipaNaMpesaPaymentScreen } from "./LandlordLipaNaMpesaPaymentScreen";
 import { LandlordUnderstandingLeaseStatusesScreen } from "./LandlordUnderstandingLeaseStatusesScreen";
+import { LandlordUploadReceiptPaymentScreen } from "./LandlordUploadReceiptPaymentScreen";
 
 import {
   LEASE_ACTION_ITEMS,
@@ -35,6 +38,8 @@ import LeasePaymentsSortModal, {
 } from "../../ui/landlord/units/LeasePaymentsSortModal";
 import { PaymentTypeValue } from "../../ui/landlord/units/PaymentTypesModal";
 import { UnitLeaseItem } from "../../ui/landlord/units/UnitLeasesList";
+
+import { useGlobalNavigation } from "@/context/NavigationContext";
 
 export interface LeaseTenantMember {
   id: string;
@@ -77,6 +82,22 @@ export function LandlordLeaseManagementScreen({
   onViewTenantDetails,
   onAddTenantsPress,
 }: LandlordLeaseManagementScreenProps) {
+  const {
+    currentSubDashboard,
+    navigateToSubDashboard,
+    navigateBack,
+    updateUnitName,
+    updateBuildingName,
+  } = useGlobalNavigation();
+
+  const unitLabel = lease.unitName || "Room 7";
+  const buildingLabel = lease.buildingName || "Demo Building";
+
+  useEffect(() => {
+    updateUnitName(unitLabel);
+    updateBuildingName(buildingLabel);
+  }, [unitLabel, buildingLabel, updateUnitName, updateBuildingName]);
+
   // ---------------- SUB-SCREENS & SEGMENTS ----------------
   const [subScreen, setSubScreen] = useState<"notes" | "status_guide" | null>(
     null,
@@ -84,6 +105,12 @@ export function LandlordLeaseManagementScreen({
   const [activeSegment, setActiveSegment] = useState<
     "actions" | "payments" | "tenants"
   >("actions");
+
+  // // -----------------   PAYMENT MODE SCREENS -----------------
+
+  // const [paymentScreenMode, setPaymentScreenMode] = useState<
+  //   "receipt" | "mpesa" | "cash" | null
+  // >(null);
 
   // ---------------- LEASE ACTION MODALS & BANNER ----------------
   const [isPayRentOpen, setIsPayRentOpen] = useState(false);
@@ -180,7 +207,6 @@ export function LandlordLeaseManagementScreen({
 
   const hasOverpayment = false;
   const primaryTenantName = lease.tenantName || tenants[0]?.name || "Outis";
-  const unitLabel = lease.unitName || "Room 7";
 
   const handleActionPress = (key: LeaseActionKey) => {
     onActionPress?.(key, lease);
@@ -274,6 +300,52 @@ export function LandlordLeaseManagementScreen({
     return (
       <LandlordUnderstandingLeaseStatusesScreen
         onBack={() => setSubScreen(null)}
+      />
+    );
+  }
+
+  // ✅ Driven by currentSubDashboard so TabsLayout's persisted header title stays in sync
+  if (
+    currentSubDashboard === "upload_receipt_payment" ||
+    currentSubDashboard === "payment_details"
+  ) {
+    return (
+      <LandlordUploadReceiptPaymentScreen
+        unitName={unitLabel}
+        buildingName={buildingLabel}
+        defaultPhone={tenantPhone}
+        onBack={navigateBack}
+        onSubmitPayment={(payload) => {
+          console.log("Receipt payment submitted:", payload);
+          navigateBack();
+        }}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "mpesa_payment") {
+    return (
+      <LandlordLipaNaMpesaPaymentScreen
+        unitName={unitLabel}
+        defaultPhone={tenantPhone}
+        onBack={navigateBack}
+        onSubmitMpesa={(payload) => {
+          console.log("M-Pesa payment submitted:", payload);
+          navigateBack();
+        }}
+      />
+    );
+  }
+
+  if (currentSubDashboard === "cash_payment_details") {
+    return (
+      <LandlordCashPaymentDetailsScreen
+        defaultPhone={tenantPhone}
+        onBack={navigateBack}
+        onSubmitCash={(payload) => {
+          console.log("Cash payment submitted:", payload);
+          navigateBack();
+        }}
       />
     );
   }
@@ -761,6 +833,10 @@ export function LandlordLeaseManagementScreen({
         onClosePayRent={() => setIsPayRentOpen(false)}
         onSelectPaymentMethod={(method) => {
           setIsPayRentOpen(false);
+          if (method === "receipt")
+            navigateToSubDashboard("upload_receipt_payment");
+          if (method === "mpesa") navigateToSubDashboard("mpesa_payment");
+          if (method === "cash") navigateToSubDashboard("cash_payment_details");
           console.log("Selected payment method:", method);
         }}
         isChangeRentOpen={isChangeRentOpen}
