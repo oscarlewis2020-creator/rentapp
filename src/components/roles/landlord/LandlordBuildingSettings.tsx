@@ -13,10 +13,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LeaseTermsTemplateModal } from "../../../components/ui/landlord/extra/building-details/LeaseTermsTemplateModal";
 import BuildingCurrencyModal from "../../../components/ui/landlord/extra/building-settings/BuildingCurrencyModal";
 import ConfirmLateFeeModal from "../../../components/ui/landlord/extra/building-settings/ConfirmLateFeeModal";
-import EditImagesModal from "../../../components/ui/landlord/extra/building-settings/EditImagesModal";
 import HideBuildingModal from "../../../components/ui/landlord/extra/building-settings/HideBuildingModal";
 import LandlordContactsModal from "../../../components/ui/landlord/extra/building-settings/LandlordContactsModal";
 import LatePaymentFeeConfigModal from "../../../components/ui/landlord/extra/building-settings/LatePaymentFeeConfigModal";
+import EditBuildingImagesModal from "../../ui/landlord/extra/building-settings/EditBuildingImagesModal";
 
 interface BuildingSettingsScreenProps {
   buildingName: string;
@@ -488,7 +488,7 @@ export function LandlordBuildingSettings({
           }}
         />
 
-        <EditImagesModal
+        <EditBuildingImagesModal
           isVisible={isImagesOpen}
           onCancel={() => setIsImagesOpen(false)}
           onSave={() => setIsImagesOpen(false)}

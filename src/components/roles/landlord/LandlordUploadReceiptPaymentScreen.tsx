@@ -321,7 +321,7 @@ export function LandlordUploadReceiptPaymentScreen({
                 <Ionicons
                   name="image"
                   size={20}
-                  color={receiptSource === "gallery" ? "#CBD5E1" : "#79D2FA"}
+                  color={receiptSource === "gallery" ? "#64748B" : "#79D2FA"}
                 />
                 <Text
                   style={[
@@ -342,7 +342,7 @@ export function LandlordUploadReceiptPaymentScreen({
                   <Ionicons
                     name="camera"
                     size={20}
-                    color={receiptSource === "camera" ? "#CBD5E1" : "#79D2FA"}
+                    color={receiptSource === "camera" ? "#64748B" : "#79D2FA"}
                   />
                   <Text
                     style={[
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   uploadBtnText: {
-    color: "#E2E8F0",
+    color: "#79D2FA",
     fontSize: 16,
     fontWeight: "500",
   },

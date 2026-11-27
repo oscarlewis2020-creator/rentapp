@@ -164,52 +164,6 @@ export function LandlordUnitDetailsScreen({
     );
   }
 
-  // const [selectedLease, setSelectedLease] = useState<UnitLeaseItem | null>(
-  //   null,
-  // );
-
-  // const [activeLeaseWorkspace, setActiveLeaseWorkspace] =
-  //   useState<UnitLeaseItem | null>(null);
-
-  // if (selectedLease) {
-  //   return (
-  //     <LandlordLeaseDetailsScreen
-  //       lease={selectedLease}
-  //       onBack={() => setSelectedLease(null)}
-  //     />
-  //   );
-  // }
-
-  // if (activeLeaseWorkspace) {
-  //   return (
-  //     <LandlordLeaseManagementScreen
-  //       lease={activeLeaseWorkspace}
-  //       onBack={() => setActiveLeaseWorkspace(null)}
-  //       onDeleteLeaseConfirmed={(leaseId) => {
-  //         setLeases((prev) => prev.filter((item) => item.id !== leaseId));
-  //         setActiveLeaseWorkspace(null);
-  //       }}
-  //       onActionPress={(actionKey, targetLease) => {
-  //         console.log("Lease action pressed:", actionKey, targetLease.id);
-  //       }}
-  //       onViewTenantDetails={(tenant, targetLease) => {
-  //         setSelectedLease({
-  //           ...targetLease,
-  //           tenantName: tenant.name,
-  //           status: tenant.status,
-  //           leaseStartDate: tenant.startDate,
-  //           endDate: tenant.endDate,
-  //           role: tenant.role,
-  //         });
-  //         setActiveLeaseWorkspace(null);
-  //       }}
-  //       onAddTenantsPress={(targetLease) => {
-  //         console.log("Add tenants to lease:", targetLease.id);
-  //       }}
-  //     />
-  //   );
-  // }
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView

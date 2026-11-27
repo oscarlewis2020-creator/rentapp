@@ -1,9 +1,14 @@
 // components/ui/landlord/units/EditUnitImagesModal.tsx
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
+import ImagePreviewGrid from "@/components/media/ImagePreviewGrid";
+import {
+  appendUniqueImageUris,
+  capturePhotoWithCamera,
+  notifyMediaMessage,
+  pickImagesFromLibrary,
+} from "@/utils/media/imagePickerHelpers";
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -26,39 +31,52 @@ export default function EditUnitImagesModal({
   onSave,
 }: EditUnitImagesModalProps) {
   const [images, setImages] = useState<string[]>(initialImages);
+  const [isPickingMedia, setIsPickingMedia] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setImages(initialImages);
+      setIsPickingMedia(false);
     }
   }, [visible, initialImages]);
 
   const handlePickImages = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets?.length) {
-      const uris = result.assets.map((asset) => asset.uri);
-      setImages((prev) => [...prev, ...uris]);
+    if (isPickingMedia) return;
+    setIsPickingMedia(true);
+    try {
+      const picked = await pickImagesFromLibrary({
+        allowsMultipleSelection: true,
+        permissionMessage:
+          "Please allow photo library access to pick unit pictures.",
+      });
+      if (picked.length > 0) {
+        setImages((prev) => appendUniqueImageUris(prev, picked));
+      }
+    } catch (error) {
+      console.error("Failed to pick unit images:", error);
+      notifyMediaMessage("Gallery Error", "Unable to open the image library.");
+    } finally {
+      setIsPickingMedia(false);
     }
   };
 
   const handleOpenCamera = async () => {
-    if (Platform.OS !== "web") {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets?.length) {
-      setImages((prev) => [...prev, result.assets[0].uri]);
+    if (isPickingMedia) return;
+    setIsPickingMedia(true);
+    try {
+      const captured = await capturePhotoWithCamera({
+        allowsEditing: true,
+        permissionMessage:
+          "Please allow camera access to capture a unit picture.",
+      });
+      if (captured) {
+        setImages((prev) => appendUniqueImageUris(prev, [captured]));
+      }
+    } catch (error) {
+      console.error("Failed to open camera for unit image:", error);
+      notifyMediaMessage("Camera Error", "Unable to launch the camera.");
+    } finally {
+      setIsPickingMedia(false);
     }
   };
 
@@ -80,19 +98,23 @@ export default function EditUnitImagesModal({
                 <View style={styles.pickerRow}>
                   <Pressable
                     onPress={handlePickImages}
+                    disabled={isPickingMedia}
                     style={styles.pickerAction}
                   >
                     <Ionicons name="image" size={18} color="#38BDF8" />
                     <Text style={styles.pickerActionText}>Pick image(s)</Text>
                   </Pressable>
 
-                  <Pressable
-                    onPress={handleOpenCamera}
-                    style={styles.pickerAction}
-                  >
-                    <Ionicons name="camera" size={18} color="#38BDF8" />
-                    <Text style={styles.pickerActionText}>Open camera</Text>
-                  </Pressable>
+                  {Platform.OS !== "web" && (
+                    <Pressable
+                      onPress={handleOpenCamera}
+                      disabled={isPickingMedia}
+                      style={styles.pickerAction}
+                    >
+                      <Ionicons name="camera" size={18} color="#38BDF8" />
+                      <Text style={styles.pickerActionText}>Open camera</Text>
+                    </Pressable>
+                  )}
                 </View>
 
                 <ScrollView
@@ -100,22 +122,13 @@ export default function EditUnitImagesModal({
                   nestedScrollEnabled
                   showsVerticalScrollIndicator={false}
                 >
-                  {images.map((uri, index) => (
-                    <View key={`${uri}-${index}`} style={styles.imageRow}>
-                      <Image source={{ uri }} style={styles.thumbnail} />
-                      <Pressable
-                        onPress={() => handleRemoveImage(index)}
-                        style={styles.deleteBtn}
-                        hitSlop={8}
-                      >
-                        <MaterialCommunityIcons
-                          name="trash-can"
-                          size={18}
-                          color="#F87171"
-                        />
-                      </Pressable>
-                    </View>
-                  ))}
+                  <ImagePreviewGrid
+                    uris={images}
+                    onRemoveImage={handleRemoveImage}
+                    containerStyle={styles.gridOverride}
+                    cardStyle={styles.unitPreviewCard}
+                    accessibilityLabel="Delete unit image"
+                  />
                 </ScrollView>
               </View>
             </Dialog.Content>
@@ -205,30 +218,13 @@ const styles = StyleSheet.create({
   imageList: {
     maxHeight: 160,
   },
-  imageRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "#334155",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 8,
+
+  gridOverride: {
+    marginTop: 8,
   },
-  thumbnail: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    backgroundColor: "#0F172A",
-  },
-  deleteBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(248, 113, 113, 0.16)",
-    alignItems: "center",
-    justifyContent: "center",
+  unitPreviewCard: {
+    backgroundColor: "#1B252F",
+    borderColor: "#475569",
   },
   actions: {
     paddingHorizontal: 16,

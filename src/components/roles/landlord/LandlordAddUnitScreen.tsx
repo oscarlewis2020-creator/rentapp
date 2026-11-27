@@ -342,22 +342,57 @@ export function LandlordAddUnitScreen({
             )}
           </View>
 
-          {/* Image Previews inside the box */}
-          {images.map((uri, index) => (
-            <View key={index} style={styles.previewBox}>
-              <Image source={{ uri }} style={styles.previewThumb} />
-              <TouchableOpacity
-                onPress={() => handleRemoveImage(index)}
-                style={styles.deleteBtn}
-              >
-                <MaterialCommunityIcons
-                  name="delete-outline"
-                  size={20}
-                  color="#EF4444"
-                />
-              </TouchableOpacity>
+          {/* Image Previews in Dynamic 2-Column Rows */}
+          {images.length > 0 && (
+            <View style={styles.previewList}>
+              {Array.from(
+                { length: Math.ceil(images.length / 2) },
+                (_, rowIndex) =>
+                  images
+                    .slice(rowIndex * 2, rowIndex * 2 + 2)
+                    .map((uri, colIndex) => ({
+                      uri,
+                      index: rowIndex * 2 + colIndex,
+                    })),
+              ).map((pair, rowIndex) => {
+                const isSingleInRow = pair.length === 1;
+
+                return (
+                  <View key={`row-${rowIndex}`} style={styles.previewRow}>
+                    {pair.map((item) => (
+                      <View
+                        key={`${item.uri}-${item.index}`}
+                        style={[
+                          styles.previewBox,
+                          isSingleInRow
+                            ? styles.fullWidthCard
+                            : styles.halfWidthCard,
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: item.uri }}
+                          style={styles.previewThumb}
+                          resizeMode="cover"
+                        />
+                        <TouchableOpacity
+                          onPress={() => handleRemoveImage(item.index)}
+                          style={styles.deleteBtn}
+                          activeOpacity={0.8}
+                          accessibilityLabel="Remove image"
+                        >
+                          <MaterialCommunityIcons
+                            name="delete-outline"
+                            size={18}
+                            color="#161C24"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })}
             </View>
-          ))}
+          )}
         </View>
 
         {/* Dynamic Submit / Save Button */}
@@ -507,26 +542,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  previewList: {
+    marginTop: 12,
+    gap: 10,
+  },
+  previewRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  halfWidthCard: {
+    flex: 1,
+  },
+  fullWidthCard: {
+    width: "100%",
+  },
   previewBox: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#64748B",
-    borderRadius: 10,
-    padding: 8,
-    marginBottom: 22,
+    borderColor: "#334155",
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    backgroundColor: "#1E293B",
   },
   previewThumb: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    backgroundColor: "#334155",
+    width: 56,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: "#0F172A",
   },
   deleteBtn: {
-    padding: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#D9827B",
+    opacity: 1,
     alignItems: "center",
     justifyContent: "center",
+    ...Platform.select({ web: { cursor: "pointer" } }),
   },
   submitBtn: {
     backgroundColor: "#7DD3FC",

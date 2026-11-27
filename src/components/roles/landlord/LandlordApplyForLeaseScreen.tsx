@@ -189,13 +189,19 @@ export function LandlordApplyForLeaseScreen({
               <MaterialCommunityIcons name="image" size={18} color="#7DD3FC" />
               <Text style={styles.mediaBtnText}>Pick one image</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.mediaBtn}
-              onPress={handleOpenCamera}
-            >
-              <MaterialCommunityIcons name="camera" size={18} color="#7DD3FC" />
-              <Text style={styles.mediaBtnText}>Open camera</Text>
-            </TouchableOpacity>
+            {Platform.OS !== "web" && (
+              <TouchableOpacity
+                style={styles.mediaBtn}
+                onPress={handleOpenCamera}
+              >
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={18}
+                  color="#7DD3FC"
+                />
+                <Text style={styles.mediaBtnText}>Open camera</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {idImage && (

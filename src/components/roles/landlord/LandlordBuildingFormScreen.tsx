@@ -1,10 +1,15 @@
 // components/roles/landlord/BuildingFormScreen.tsx
+import ImagePreviewGrid from "@/components/media/ImagePreviewGrid";
+import {
+  appendUniqueImageUris,
+  capturePhotoWithCamera,
+  notifyMediaMessage,
+  pickImagesFromLibrary,
+} from "@/utils/media/imagePickerHelpers";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -125,34 +130,20 @@ export function BuildingFormScreen({
     setIsPickingMedia(true);
 
     try {
-      if (Platform.OS !== "web") {
-        const permission =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) {
-          showNotice(
-            "Permission required",
-            "Allow photo library access to select building pictures.",
-          );
-          return;
-        }
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
+      const picked = await pickImagesFromLibrary({
         allowsMultipleSelection: true,
-        quality: 0.85,
+        permissionMessage:
+          "Please allow photo library access to attach building pictures.",
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newUris = result.assets.map((asset) => asset.uri);
-        setForm((current) => ({
-          ...current,
-          imageUris: Array.from(new Set([...current.imageUris, ...newUris])),
+      if (picked.length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          imageUris: appendUniqueImageUris(prev.imageUris, picked),
         }));
       }
     } catch (error) {
-      console.error("Building image picker error:", error);
-      showNotice("Picker error", "Could not open the photo library.");
+      console.error("Error picking building images:", error);
+      notifyMediaMessage("Gallery Error", "Unable to open the image library.");
     } finally {
       setIsPickingMedia(false);
     }
@@ -163,33 +154,20 @@ export function BuildingFormScreen({
     setIsPickingMedia(true);
 
     try {
-      if (Platform.OS !== "web") {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-          showNotice(
-            "Permission required",
-            "Allow camera access to take building pictures.",
-          );
-          return;
-        }
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
+      const captured = await capturePhotoWithCamera({
         allowsEditing: true,
-        quality: 0.85,
+        permissionMessage:
+          "Please allow camera access to capture a building picture.",
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const capturedUri = result.assets[0].uri;
-        setForm((current) => ({
-          ...current,
-          imageUris: Array.from(new Set([...current.imageUris, capturedUri])),
+      if (captured) {
+        setForm((prev) => ({
+          ...prev,
+          imageUris: appendUniqueImageUris(prev.imageUris, [captured]),
         }));
       }
     } catch (error) {
-      console.error("Building camera error:", error);
-      showNotice("Camera error", "Could not launch the camera.");
+      console.error("Error opening camera for building:", error);
+      notifyMediaMessage("Camera Error", "Unable to launch the camera.");
     } finally {
       setIsPickingMedia(false);
     }
@@ -544,27 +522,15 @@ export function BuildingFormScreen({
               )}
             </View>
 
-            {form.imageUris.length > 0 && (
-              <View style={styles.previewList}>
-                {form.imageUris.map((uri) => (
-                  <View key={uri} style={styles.attachedPillRow}>
-                    <Image
-                      source={{ uri }}
-                      style={styles.previewThumbnail}
-                      resizeMode="cover"
-                    />
-                    <TouchableOpacity
-                      style={styles.trashIconBtn}
-                      activeOpacity={0.8}
-                      onPress={() => handleRemoveImage(uri)}
-                      accessibilityLabel="Remove building photo"
-                    >
-                      <Ionicons name="trash" size={18} color="#171D20" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
+            <ImagePreviewGrid
+              uris={form.imageUris}
+              onRemoveImage={(index) => {
+                const targetUri = form.imageUris[index];
+                if (targetUri) handleRemoveImage(targetUri);
+              }}
+              // cardStyle={styles.buildingPreviewCard}
+              accessibilityLabel="Remove building photo"
+            />
           </View>
 
           {/* Lease terms */}

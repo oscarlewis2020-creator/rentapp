@@ -1,17 +1,29 @@
 // components/ui/landlord/lease/UpdateTenantPhotoIdModal.tsx
+import ImagePreviewGrid from "@/components/media/ImagePreviewGrid";
+import {
+  capturePhotoWithCamera,
+  notifyMediaMessage,
+  pickImagesFromLibrary,
+} from "@/utils/media/imagePickerHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
+
+export interface TenantPhotoIdResult {
+  selectedSource: "gallery" | "camera" | null;
+  photoUri: string | null;
+  fileName: string | null;
+}
 
 interface UpdateTenantPhotoIdModalProps {
   visible: boolean;
   tenantName: string;
   idNumberLabel?: string;
   onClose: () => void;
-  onPickImage?: () => void;
-  onOpenCamera?: () => void;
-  onSubmit?: (selectedSource: "gallery" | "camera" | null) => void;
+  onPickImage?: (uri: string) => void;
+  onOpenCamera?: (uri: string) => void;
+  onSubmit?: (payload: TenantPhotoIdResult) => void;
 }
 
 export default function UpdateTenantPhotoIdModal({
@@ -26,21 +38,84 @@ export default function UpdateTenantPhotoIdModal({
   const [selectedSource, setSelectedSource] = useState<
     "gallery" | "camera" | null
   >(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [isPickingMedia, setIsPickingMedia] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setSelectedSource(null);
+      setPhotoUri(null);
+      setFileName(null);
+      setIsPickingMedia(false);
     }
   }, [visible]);
 
-  const handleGallery = () => {
-    setSelectedSource("gallery");
-    onPickImage?.();
+  const notifyUser = (title: string, message: string) => {
+    if (Platform.OS === "web") {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
   };
 
-  const handleCamera = () => {
-    setSelectedSource("camera");
-    onOpenCamera?.();
+  const handleGallery = async () => {
+    if (isPickingMedia) return;
+    setIsPickingMedia(true);
+
+    try {
+      const picked = await pickImagesFromLibrary({
+        allowsMultipleSelection: false,
+        allowsEditing: true,
+        permissionMessage:
+          "Please allow photo library access to select a Photo ID.",
+      });
+      if (picked.length > 0) {
+        const uri = picked[0];
+        const derivedName =
+          uri.split("/").pop()?.split("?")[0] || "tenant-id.jpg";
+        setSelectedSource("gallery");
+        setPhotoUri(uri);
+        setFileName(derivedName);
+        onPickImage?.(uri);
+      }
+    } catch (error) {
+      console.error("Error picking tenant Photo ID:", error);
+      notifyMediaMessage("Gallery Error", "Unable to open the photo library.");
+    } finally {
+      setIsPickingMedia(false);
+    }
+  };
+
+  const handleCamera = async () => {
+    if (isPickingMedia) return;
+    setIsPickingMedia(true);
+
+    try {
+      const captured = await capturePhotoWithCamera({
+        allowsEditing: true,
+        permissionMessage: "Please allow camera access to capture a Photo ID.",
+      });
+      if (captured) {
+        const derivedName =
+          captured.split("/").pop()?.split("?")[0] || "tenant-id-camera.jpg";
+        setSelectedSource("camera");
+        setPhotoUri(captured);
+        setFileName(derivedName);
+        onOpenCamera?.(captured);
+      }
+    } catch (error) {
+      console.error("Error opening camera for tenant Photo ID:", error);
+      notifyMediaMessage("Camera Error", "Unable to launch the camera.");
+    } finally {
+      setIsPickingMedia(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoUri(null);
+    setFileName(null);
+    setSelectedSource(null);
   };
 
   return (
@@ -67,38 +142,59 @@ export default function UpdateTenantPhotoIdModal({
             <Text style={styles.photoSelectorFloatingLabel}>Photo ID</Text>
 
             <View style={styles.sourcesRow}>
-              <Pressable onPress={handleGallery} style={styles.sourceOption}>
+              <Pressable
+                onPress={handleGallery}
+                disabled={isPickingMedia}
+                style={styles.sourceOption}
+              >
                 <Ionicons
                   name="image"
                   size={20}
-                  color={selectedSource === "gallery" ? "#79D2FA" : "#CBD5E1"}
+                  color={selectedSource === "gallery" ? "#64748B" : "#79D2FA"}
                 />
                 <Text
                   style={[
                     styles.sourceLabel,
-                    selectedSource === "gallery" && styles.sourceLabelActive,
+                    styles.sourceLabelDefault,
+                    selectedSource === "gallery" && styles.sourceLabelBlurred,
                   ]}
                 >
                   Pick one image
                 </Text>
               </Pressable>
 
-              <Pressable onPress={handleCamera} style={styles.sourceOption}>
-                <Ionicons
-                  name="camera"
-                  size={20}
-                  color={selectedSource === "camera" ? "#79D2FA" : "#CBD5E1"}
-                />
-                <Text
-                  style={[
-                    styles.sourceLabel,
-                    selectedSource === "camera" && styles.sourceLabelActive,
-                  ]}
+              {Platform.OS !== "web" && (
+                <Pressable
+                  onPress={handleCamera}
+                  disabled={isPickingMedia}
+                  style={styles.sourceOption}
                 >
-                  Open camera
-                </Text>
-              </Pressable>
+                  <Ionicons
+                    name="camera"
+                    size={20}
+                    color={selectedSource === "camera" ? "#64748B" : "#79D2FA"}
+                  />
+                  <Text
+                    style={[
+                      styles.sourceLabel,
+                      styles.sourceLabelDefault,
+                      selectedSource === "camera" && styles.sourceLabelBlurred,
+                    ]}
+                  >
+                    Open camera
+                  </Text>
+                </Pressable>
+              )}
             </View>
+
+            <ImagePreviewGrid
+              uris={photoUri ? [photoUri] : []}
+              onRemoveImage={handleRemovePhoto}
+              containerStyle={styles.singlePreviewContainer}
+              cardStyle={styles.singlePreviewCard}
+              deleteIconColor="#202429"
+              accessibilityLabel="Delete Photo ID"
+            />
           </View>
         </Dialog.Content>
 
@@ -114,7 +210,13 @@ export default function UpdateTenantPhotoIdModal({
           </Button>
           <Button
             mode="contained"
-            onPress={() => onSubmit?.(selectedSource)}
+            onPress={() =>
+              onSubmit?.({
+                selectedSource,
+                photoUri,
+                fileName,
+              })
+            }
             style={styles.submitBtn}
             labelStyle={styles.submitLabel}
             buttonColor="#79D2FA"
@@ -196,13 +298,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sourceLabel: {
-    color: "#E2E8F0",
     fontSize: 15,
     fontWeight: "500",
+  },
+  sourceLabelDefault: {
+    color: "#79D2FA",
+  },
+  sourceLabelBlurred: {
+    color: "#64748B",
   },
   sourceLabelActive: {
     color: "#79D2FA",
   },
+  singlePreviewContainer: {
+    marginTop: 14,
+  },
+  singlePreviewCard: {
+    backgroundColor: "#202429",
+    borderColor: "#8A8F98",
+  },
+
   actions: {
     paddingHorizontal: 18,
     paddingBottom: 16,
